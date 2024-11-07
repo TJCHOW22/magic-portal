@@ -139,27 +139,60 @@ def process_natural_language_query(query: str, content_items: list) -> list:
         return content_items
 
 def display_content_view():
-    st.header("Content Library")
+    # Add welcome section
+    st.markdown('''
+        <div style='background: linear-gradient(90deg, #1a237e 0%, #283593 100%);
+             color: white; 
+             padding: 20px; 
+             border-radius: 10px; 
+             margin-bottom: 20px;'>
+            <h1 style='margin: 0;'>📚 Content Library</h1>
+            <p style='margin: 10px 0 0 0;'>Organize and discover your content</p>
+        </div>
+    ''', unsafe_allow_html=True)
     
-    # Search and filter options
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        search_query = st.text_input("🔍 Search using natural language")
-    with col2:
-        categories = get_categories()
-        selected_category = st.selectbox("📁 Filter by Category", ["All"] + categories)
-    
-    # Load content with error handling
+    # Load content for stats
     try:
         content_items = load_content()
         # Sort content items by date (most recent first)
         content_items.sort(key=lambda x: x['date'], reverse=True)
-    except json.JSONDecodeError:
-        st.error("Error loading content. The content file may be corrupted.")
-        content_items = []
     except Exception as e:
         st.error(f"Error loading content: {str(e)}")
         content_items = []
+    
+    # Add quick stats
+    total_items = len(content_items)
+    build_items = len([i for i in content_items if i['category'] == 'Build'])
+    sales_items = len([i for i in content_items if i['category'] == 'Sales'])
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric('Total Items', total_items)
+    with col2:
+        st.metric('Build Items', build_items)
+    with col3:
+        st.metric('Sales Items', sales_items)
+    
+    # Update search and filter section
+    st.markdown('''
+        <div style='background-color: #f8f9fa; 
+             padding: 15px; 
+             border-radius: 10px; 
+             margin: 15px 0;'>
+            <h3 style='margin: 0 0 10px 0;'>Search & Filter</h3>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    # Search and filter options
+    categories = get_categories()
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        search_query = st.text_input('🔍 Search content...', 
+            placeholder='Try "technical documentation" or "sales strategy"')
+    with col2:
+        selected_category = st.selectbox('📁 Filter by Category', 
+            ["All"] + categories,
+            format_func=lambda x: f"{x} ({len([i for i in content_items if i['category'] == x]) if x != 'All' else len(content_items)})")
     
     # Apply natural language search if query exists
     if search_query:
@@ -195,16 +228,24 @@ def display_content_view():
                     # Display items in sorted order within each category
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
                         st.markdown(f'''
-                            <div style='background-color: #f0f2f6; padding: 10px; 
-                                 border-radius: 5px; margin: 10px 0;
-                                 border-left: 4px solid #1E88E5;'>
-                                <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
-                                <p><strong>Category:</strong> {item['category']}</p>
-                                <p><strong>Description:</strong> {item['description']}</p>
+                            <div style='background-color: #f8f9fa; 
+                                 padding: 15px; 
+                                 border-radius: 10px; 
+                                 margin: 15px 0;
+                                 border-left: 5px solid #1E88E5;
+                                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                                <div style='display: flex; justify-content: space-between; align-items: center;'>
+                                    <h4 style='margin: 0; color: #1a237e;'>📌 {item['title']}</h4>
+                                    <span style='color: #666; font-size: 0.9em;'>{item['date']}</span>
+                                </div>
+                                <div style='margin-top: 10px;'>
+                                    <span style='background-color: #e3f2fd; padding: 3px 8px; border-radius: 12px; font-size: 0.9em;'>
+                                        {item['category']}
+                                    </span>
+                                </div>
+                                <p style='margin: 10px 0; color: #333;'>{item['description']}</p>
                             </div>
-                            ''', 
-                            unsafe_allow_html=True
-                        )
+                        ''', unsafe_allow_html=True)
                         
                         if item["type"] == "Image":
                             if item["content"]:
