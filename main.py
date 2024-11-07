@@ -61,12 +61,10 @@ def main():
                 background-color: #1a1f3c;  /* Dark navy blue */
                 color: #ffffff;  /* White text */
             }
-            
             /* Make all text white by default */
             p, h1, h2, h3, h4, h5, h6 {
                 color: #ffffff !important;
             }
-            
             /* Style content cards */
             div[data-testid="stExpander"] {
                 background-color: #232b50;  /* Slightly lighter navy blue */
@@ -74,20 +72,17 @@ def main():
                 padding: 10px;
                 margin: 10px 0;
             }
-            
             /* Style buttons */
             button {
                 background-color: #3949ab !important;
                 color: white !important;
             }
-            
             /* Style text inputs */
             input[type="text"], textarea {
                 background-color: #2a325a !important;
                 color: white !important;
                 border: 1px solid #3949ab !important;
             }
-            
             /* Custom toggle button */
             .toggle-button {
                 background: #3949ab;
@@ -99,11 +94,9 @@ def main():
                 cursor: pointer;
                 transition: background-color 0.3s;
             }
-            
             .toggle-button:hover {
                 background: #4a5ac9;
             }
-            
             .content-section {
                 display: none;
                 background: #000000;
