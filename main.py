@@ -291,7 +291,7 @@ def display_content_view():
                                 {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
                             </div>
                         ''', unsafe_allow_html=True)
-                        
+
                         if item["type"] == "Image":
                             if item["content"]:
                                 try:
@@ -299,7 +299,28 @@ def display_content_view():
                                 except:
                                     st.error("Unable to display image")
                         elif item["type"] == "Text":
-                            st.text_area("Content", item['content'], height=100, disabled=True)
+                            st.markdown(f'''
+                                <details style="background: #1a1f3c; 
+                                           padding: 10px; 
+                                           border-radius: 8px; 
+                                           margin-top: 10px;
+                                           border: 1px solid #3949ab;">
+                                    <summary style="color: #ffffff; 
+                                              cursor: pointer; 
+                                              padding: 5px;
+                                              user-select: none;">
+                                        View Content
+                                    </summary>
+                                    <div style="background: #1a1f3c; 
+                                          padding: 10px; 
+                                          margin-top: 10px; 
+                                          border-radius: 5px;
+                                          color: #ffffff;
+                                          white-space: pre-wrap;">
+                                        {item['content']}
+                                    </div>
+                                </details>
+                            ''', unsafe_allow_html=True)
             
             col_idx = (col_idx + 1) % 2
     
