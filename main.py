@@ -47,7 +47,9 @@ def process_natural_language_query(query: str, content_items: list) -> list:
         
         # Sort by similarity score
         results.sort(key=lambda x: x[1], reverse=True)
-        return [item for item, score in results]
+        
+        # Return only items with similarity above threshold (0.7)
+        return [item for item, score in results if score > 0.7]
     
     except Exception as e:
         st.error(f"Error in natural language search: {str(e)}")
@@ -83,34 +85,8 @@ def main():
                 color: white !important;
                 border: 1px solid #3949ab !important;
             }
-            /* Custom toggle button */
-            .toggle-button {
-                background: #3949ab;
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                border-radius: 8px;
-                margin-top: 10px;
-                cursor: pointer;
-                transition: background-color 0.3s;
-            }
-            .toggle-button:hover {
-                background: #4a5ac9;
-            }
-            .content-section {
-                display: none;
-                background: #000000;
-                padding: 15px;
-                margin-top: 10px;
-                border-radius: 8px;
-                border: 1px solid #3949ab;
-            }
         </style>
     ''', unsafe_allow_html=True)
-    
-    # Initialize session state for content toggles
-    if 'content_toggles' not in st.session_state:
-        st.session_state.content_toggles = {}
     
     # Sidebar navigation
     nav_selection = st.sidebar.radio("Navigation", ["Upload Content", "View Content"])
@@ -233,6 +209,7 @@ def display_content_view():
     
     # Apply natural language search if query exists
     if search_query:
+        st.info("Searching using natural language processing...")
         content_items = process_natural_language_query(search_query, content_items)
     
     # Filter by category
@@ -259,79 +236,66 @@ def display_content_view():
             with cols[col_idx]:
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
+                        # Display content card header
+                        st.markdown(f'''
+                            <div style="background: #000000; 
+                                 padding: 20px; 
+                                 border-radius: 15px;
+                                 margin: 15px 0;
+                                 border-left: 5px solid #3949ab;
+                                 box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
+                                    <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
+                                </div>
+                                <div style="margin: 10px 0;">
+                                    <span style="background: #3949ab; 
+                                          padding: 5px 10px; 
+                                          border-radius: 15px; 
+                                          font-size: 0.9em;
+                                          color: white;">
+                                        {item['category']}
+                                    </span>
+                                </div>
+                                <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
+                                    {item['description']}
+                                </p>
+                            </div>
+                        ''', unsafe_allow_html=True)
+
+                        # Display content based on type
                         if item["type"] == "Text":
-                            toggle_key = f"toggle_{item['title']}_{item['date']}"
-                            st.markdown(f'''
-                                <div style="background: #000000; 
-                                     padding: 20px; 
-                                     border-radius: 15px;
-                                     margin: 15px 0;
-                                     border-left: 5px solid #3949ab;
-                                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
-                                        <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
-                                    </div>
-                                    <div style="margin: 10px 0;">
-                                        <span style="background: #3949ab; 
-                                              padding: 5px 10px; 
-                                              border-radius: 15px; 
-                                              font-size: 0.9em;
-                                              color: white;">
-                                            {item['category']}
-                                        </span>
-                                    </div>
-                                    <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
-                                        {item['description']}
-                                    </p>
-                                    <button class="toggle-button" 
-                                            onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-                                        View Content
-                                    </button>
-                                    <div class="content-section">
-                                        <pre style="color: #ffffff;
+                            with st.expander("View Content"):
+                                st.markdown(f'''
+                                    <div style="background: #000000; 
+                                          padding: 15px;
+                                          border-radius: 8px;">
+                                        <pre style="color: #ffffff; 
                                               white-space: pre-wrap;
                                               margin: 0;
                                               font-family: monospace;">
                                             {item['content']}
                                         </pre>
                                     </div>
-                                </div>
-                            ''', unsafe_allow_html=True)
-                        else:
+                                ''', unsafe_allow_html=True)
+                        elif item["type"] == "Link":
                             st.markdown(f'''
-                                <div style="background: #000000; 
-                                     padding: 20px; 
-                                     border-radius: 15px;
-                                     margin: 15px 0;
-                                     border-left: 5px solid #3949ab;
-                                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
-                                        <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
-                                    </div>
-                                    <div style="margin: 10px 0;">
-                                        <span style="background: #3949ab; 
-                                              padding: 5px 10px; 
-                                              border-radius: 15px; 
-                                              font-size: 0.9em;
-                                              color: white;">
-                                            {item['category']}
-                                        </span>
-                                    </div>
-                                    <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
-                                        {item['description']}
-                                    </p>
-                                    {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
-                                </div>
+                                <a href="{item['content']}" target="_blank" 
+                                   style="display: inline-block; 
+                                          background: #3949ab; 
+                                          color: white; 
+                                          text-decoration: none; 
+                                          padding: 8px 15px; 
+                                          border-radius: 8px; 
+                                          margin-top: 10px;">
+                                    🔗 Open Link
+                                </a>
                             ''', unsafe_allow_html=True)
-                            
-                            # Handle image content
-                            if item["type"] == "Image" and item["content"]:
-                                try:
-                                    st.image(io.BytesIO(item["content"]), use_container_width=True)
-                                except:
-                                    st.error("Unable to display image")
+                        elif item["type"] == "Image" and item["content"]:
+                            try:
+                                st.image(io.BytesIO(item["content"]), use_container_width=True)
+                            except:
+                                st.error("Unable to display image")
             
             col_idx = (col_idx + 1) % 2
 
