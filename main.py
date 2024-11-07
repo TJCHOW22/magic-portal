@@ -266,7 +266,7 @@ def display_content_view():
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
                         st.markdown(f'''
-                            <div style="background: #232b50; 
+                            <div style="background: #000000; 
                                  padding: 20px; 
                                  border-radius: 15px;
                                  margin: 15px 0;
@@ -288,6 +288,7 @@ def display_content_view():
                                 <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
                                     {item['description']}
                                 </p>
+                                {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
                             </div>
                         ''', unsafe_allow_html=True)
                         
@@ -297,9 +298,7 @@ def display_content_view():
                                     st.image(io.BytesIO(item["content"]), use_column_width=True)
                                 except:
                                     st.error("Unable to display image")
-                        elif item["type"] == "Link":
-                            st.markdown(f"🔗 [Open Link]({item['content']})")
-                        else:
+                        elif item["type"] == "Text":
                             st.text_area("Content", item['content'], height=100, disabled=True)
             
             col_idx = (col_idx + 1) % 2
