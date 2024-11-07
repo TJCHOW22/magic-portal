@@ -1,8 +1,6 @@
 import os
 from openai import OpenAI
 import json
-from PIL import Image
-import io
 import requests
 from bs4 import BeautifulSoup
 
@@ -28,10 +26,12 @@ def scrape_excalidraw_content(url: str) -> str:
         print(f"Attempting to fetch scene data from: {api_url}")
         response = requests.get(api_url, headers=headers)
         print(f"Response status code: {response.status_code}")
+        print(f"Raw response content: {response.text[:500]}")  # Print first 500 chars
         
         if response.status_code == 200:
             try:
                 scene_data = response.json()
+                print(f"Parsed scene data: {json.dumps(scene_data, indent=2)[:500]}")  # Print first 500 chars
                 print("Successfully parsed scene data")
                 
                 # Extract all text elements
@@ -60,10 +60,14 @@ def scrape_excalidraw_content(url: str) -> str:
         print(f"Attempting to fetch scene directly from: {page_url}")
         
         page_response = requests.get(page_url)
+        print(f"HTML content: {page_response.text[:500]}")  # Print first 500 chars
+        
         soup = BeautifulSoup(page_response.text, 'html.parser')
         
         # Look for text content in the page
         text_elements = soup.find_all(['text', 'tspan', 'div.excalidraw-textLayer'])
+        print(f"Found text elements: {text_elements}")  # Print found elements
+        
         texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
         
         if texts:
