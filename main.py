@@ -178,28 +178,20 @@ def display_content_view():
             content_by_category[category] = []
         content_by_category[category].append(item)
     
-    # Display content organized by category with visual improvements
+    # Display content organized by category with collapsible folders
     if not content_items:
         st.info("No content found matching your criteria.")
     else:
         for category, items in content_by_category.items():
-            st.markdown(f"""
-                <div style='background-color: #f0f2f6; padding: 10px; 
-                     border-radius: 5px; margin-top: 20px;'>
-                    <h3 style='color: #1E88E5; margin: 0;'>
-                        📑 {category}
-                    </h3>
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
-            
-            # Display items in sorted order within each category
-            for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                with st.expander(f"📌 {item['title']} - {item['date']}"):
+            # Create collapsible category folder
+            with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
+                # Display items in sorted order within each category
+                for item in sorted(items, key=lambda x: x['date'], reverse=True):
                     st.markdown(f"""
-                        <div style='background-color: #E3F2FD; padding: 10px; 
-                             border-radius: 5px; margin-bottom: 10px;'>
+                        <div style='background-color: #f0f2f6; padding: 10px; 
+                             border-radius: 5px; margin: 10px 0;
+                             border-left: 4px solid #1E88E5;'>
+                            <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
                             <p><strong>Category:</strong> {item['category']}</p>
                             <p><strong>Description:</strong> {item['description']}</p>
                         </div>
@@ -217,7 +209,6 @@ def display_content_view():
                         st.markdown(f"🔗 [Open Link]({item['content']})")
                     else:
                         st.text_area("Content", item['content'], height=100, disabled=True)
-            st.markdown("---")
 
 if __name__ == "__main__":
     main()
