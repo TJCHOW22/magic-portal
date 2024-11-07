@@ -14,17 +14,18 @@ def scrape_excalidraw_content(url: str) -> str:
         # Extract the diagram ID from the URL
         diagram_id = url.split('/')[-1]
         
-        # Make a request to Excalidraw's JSON endpoint
-        api_url = f"https://excalidraw.com/api/v2/scenes/{diagram_id}"
-        response = requests.get(api_url)
-        data = response.json()
+        # Make a request to Excalidraw's public API
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
         
-        # Extract text from elements
-        texts = []
-        if 'elements' in data:
-            for element in data['elements']:
-                if element.get('type') == 'text' and element.get('text'):
-                    texts.append(element['text'])
+        # Use BeautifulSoup to extract text content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Get all text content
+        text_elements = soup.find_all(['text', 'p', 'div', 'span'])
+        texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
         
         # Combine texts with proper formatting
         formatted_text = ' '.join(texts)
@@ -32,7 +33,7 @@ def scrape_excalidraw_content(url: str) -> str:
         
     except Exception as e:
         print(f"Error extracting Excalidraw content: {str(e)}")
-        return "Unable to extract content from Excalidraw diagram"
+        return f"Unable to extract content from Excalidraw diagram: {str(e)}"
 
 def scrape_web_content(url: str) -> str:
     if 'excalidraw.com' in url:

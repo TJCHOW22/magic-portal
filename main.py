@@ -11,7 +11,10 @@ from openai import OpenAI
 st.set_page_config(page_title="Content Management Portal", layout="wide")
 
 # Update uncategorized content at startup
-update_uncategorized_content()
+try:
+    update_uncategorized_content()
+except Exception as e:
+    st.error(f"Error updating content: {str(e)}")
 
 def main():
     st.title("Content Management Portal")
@@ -73,27 +76,30 @@ def display_upload_form():
     
     if st.button("Submit", type="primary") and title and content:
         with st.spinner("Processing content..."):
-            # Prepare content for analysis
-            if content_type == "Image":
-                text_content = extract_text_from_image(content)
-            else:
-                text_content = content
+            try:
+                # Prepare content for analysis
+                if content_type == "Image":
+                    text_content = extract_text_from_image(content)
+                else:
+                    text_content = content
+                    
+                # Analyze content using OpenAI
+                analysis = analyze_content(text_content, content_type)
                 
-            # Analyze content using OpenAI
-            analysis = analyze_content(text_content, content_type)
-            
-            # Save content with metadata
-            content_data = {
-                "title": title,
-                "type": content_type,
-                "content": content if isinstance(content, str) else None,
-                "category": analysis["category"],
-                "description": analysis["description"],
-                "date": datetime.datetime.now().strftime("%m/%y")
-            }
-            
-            save_content(content_data)
-            st.success("Content successfully uploaded and categorized!")
+                # Save content with metadata
+                content_data = {
+                    "title": title,
+                    "type": content_type,
+                    "content": content if isinstance(content, str) else None,
+                    "category": analysis["category"],
+                    "description": analysis["description"],
+                    "date": datetime.datetime.now().strftime("%m/%y")
+                }
+                
+                save_content(content_data)
+                st.success("Content successfully uploaded and categorized!")
+            except Exception as e:
+                st.error(f"Error processing content: {str(e)}")
 
 def process_natural_language_query(query: str, content_items: list) -> list:
     """
@@ -129,7 +135,7 @@ def process_natural_language_query(query: str, content_items: list) -> list:
         return [item for item, score in results]
     
     except Exception as e:
-        print(f"Error in natural language search: {str(e)}")
+        st.error(f"Error in natural language search: {str(e)}")
         return content_items
 
 def display_content_view():
@@ -143,8 +149,15 @@ def display_content_view():
         categories = get_categories()
         selected_category = st.selectbox("📁 Filter by Category", ["All"] + categories)
     
-    # Load content
-    content_items = load_content()
+    # Load content with error handling
+    try:
+        content_items = load_content()
+    except json.JSONDecodeError:
+        st.error("Error loading content. The content file may be corrupted.")
+        content_items = []
+    except Exception as e:
+        st.error(f"Error loading content: {str(e)}")
+        content_items = []
     
     # Apply natural language search if query exists
     if search_query:
