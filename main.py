@@ -192,30 +192,34 @@ def display_content_view():
             # Display category in current column
             with cols[col_idx]:
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
-                    # Display items in sorted order within each category
-                    for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                        st.markdown(f'''
-                            <div style='background-color: #f0f2f6; padding: 10px; 
-                                 border-radius: 5px; margin: 10px 0;
-                                 border-left: 4px solid #1E88E5;'>
-                                <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
-                                <p><strong>Category:</strong> {item['category']}</p>
-                                <p><strong>Description:</strong> {item['description']}</p>
-                            </div>
-                            ''', 
-                            unsafe_allow_html=True
-                        )
-                        
-                        if item["type"] == "Image":
-                            if item["content"]:
-                                try:
-                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
-                                except:
-                                    st.error("Unable to display image")
-                        elif item["type"] == "Link":
-                            st.markdown(f"🔗 [Open Link]({item['content']})")
+                    # Display items in table format within each category
+                    st.markdown("| Date | Title | Link | Description |")
+                    st.markdown("|------|-------|------|-------------|")
+
+                    # Sort items by date
+                    sorted_items = sorted(items, key=lambda x: x['date'], reverse=True)
+                    for item in sorted_items:
+                        # Create link column content
+                        if item["type"] == "Link":
+                            link_col = f"[Open Link]({item['content']})"
+                        elif item["type"] == "Image":
+                            link_col = "Image" if item.get("content") else "No Image"
                         else:
-                            st.text_area("Content", item['content'], height=100, disabled=True)
+                            link_col = "Text"
+                        
+                        # Create table row
+                        st.markdown(f"| {item['date']} | {item['title']} | {link_col} | {item['description']} |")
+                        
+                        # If it's an image, display it below the table row
+                        if item["type"] == "Image" and item.get("content"):
+                            try:
+                                st.image(io.BytesIO(item["content"]), use_column_width=True)
+                            except:
+                                st.error("Unable to display image")
+                        # If it's text content, show it in an expandable area
+                        elif item["type"] == "Text":
+                            with st.expander("View Text Content"):
+                                st.text_area("Content", item['content'], height=100, disabled=True)
             
             # Switch to next column
             col_idx = (col_idx + 1) % 2
