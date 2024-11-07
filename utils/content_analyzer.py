@@ -24,13 +24,14 @@ def analyze_content(content: str) -> dict:
     
     try:
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json"}
         )
         
         return eval(response.choices[0].message.content)
     except Exception as e:
+        print(f"Error in content analysis: {str(e)}")
         return {
             "category": "Uncategorized",
             "description": "Unable to generate description due to an error."
@@ -45,4 +46,5 @@ def extract_text_from_image(image_data: bytes) -> str:
         text = pytesseract.image_to_string(image)
         return text.strip()
     except Exception as e:
+        print(f"Error in image text extraction: {str(e)}")
         return "Unable to extract text from image"

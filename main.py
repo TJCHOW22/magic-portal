@@ -25,6 +25,29 @@ def main():
 def display_upload_form():
     st.header("Upload Content")
     
+    # Add prominent button to switch to content view
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(
+            """
+            <div style='text-align: center; margin: 30px 0; padding: 20px; 
+                 background-color: #f0f2f6; border-radius: 10px; 
+                 border: 2px solid #4CAF50;'>
+                <h2 style='color: #2E7D32;'>📚 Content Library</h2>
+                <p style='color: #1B5E20;'>Browse and manage your organized content</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("🔍 Browse Content Library", 
+                    use_container_width=True,
+                    type="primary",
+                    key="browse_library"):
+            st.session_state.current_view = 'view'
+            st.experimental_rerun()
+    
+    st.markdown("---")
+    
     # Title input
     title = st.text_input("Title", key="title_input")
     
@@ -42,7 +65,7 @@ def display_upload_form():
             content = uploaded_file.read()
             st.image(content, caption="Uploaded Image", use_column_width=True)
     
-    if st.button("Submit") and title and content:
+    if st.button("Submit", type="primary") and title and content:
         with st.spinner("Processing content..."):
             # Prepare content for analysis
             if content_type == "Image":
@@ -72,10 +95,10 @@ def display_content_view():
     # Search and filter options
     col1, col2 = st.columns([2, 1])
     with col1:
-        search_query = st.text_input("Search by keywords")
+        search_query = st.text_input("🔍 Search by keywords")
     with col2:
         categories = get_categories()
-        selected_category = st.selectbox("Filter by Category", ["All"] + categories)
+        selected_category = st.selectbox("📁 Filter by Category", ["All"] + categories)
     
     # Load and display content
     content_items = load_content()
@@ -90,15 +113,50 @@ def display_content_view():
         content_items = [item for item in content_items 
                         if item["category"] == selected_category]
     
-    # Display content
+    # Group content by category
+    content_by_category = {}
     for item in content_items:
-        with st.expander(f"{item['title']} - {item['date']}"):
-            st.write(f"**Category:** {item['category']}")
-            st.write(f"**Description:** {item['description']}")
-            if item["type"] == "Image":
-                st.image(item["content"])
-            else:
-                st.write(f"**Content:** {item['content']}")
+        category = item["category"]
+        if category not in content_by_category:
+            content_by_category[category] = []
+        content_by_category[category].append(item)
+    
+    # Display content organized by category with visual improvements
+    if not content_items:
+        st.info("No content found matching your criteria.")
+    else:
+        for category, items in content_by_category.items():
+            # Category header with custom styling
+            st.markdown(f"""
+                <div style='background-color: #f0f2f6; padding: 10px; 
+                     border-radius: 5px; margin-top: 20px;'>
+                    <h3 style='color: #1E88E5; margin: 0;'>
+                        📑 {category}
+                    </h3>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
+            for item in items:
+                with st.expander(f"📌 {item['title']} - {item['date']}"):
+                    st.markdown(f"""
+                        <div style='background-color: #E3F2FD; padding: 10px; 
+                             border-radius: 5px; margin-bottom: 10px;'>
+                            <p><strong>Category:</strong> {item['category']}</p>
+                            <p><strong>Description:</strong> {item['description']}</p>
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
+                    
+                    if item["type"] == "Image":
+                        st.image(item["content"], use_column_width=True)
+                    elif item["type"] == "Link":
+                        st.markdown(f"🔗 [Open Link]({item['content']})")
+                    else:
+                        st.text_area("Content", item['content'], height=100, disabled=True)
+            st.markdown("---")
 
 if __name__ == "__main__":
     main()
