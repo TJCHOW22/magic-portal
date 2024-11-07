@@ -16,50 +16,12 @@ try:
 except Exception as e:
     st.error(f"Error updating content: {str(e)}")
 
-def display_content_detail(content_item):
-    st.title(f"📄 {content_item['title']}")
-    
-    # Display metadata in a card
-    st.markdown(f'''
-        <div style='background-color: #f0f2f6; padding: 20px; 
-             border-radius: 10px; margin: 20px 0;
-             border-left: 4px solid #1E88E5;'>
-            <p><strong>Category:</strong> {content_item['category']}</p>
-            <p><strong>Date:</strong> {content_item['date']}</p>
-            <p><strong>Type:</strong> {content_item['type']}</p>
-        </div>
-    ''', unsafe_allow_html=True)
-    
-    # Display description
-    st.header("Description")
-    st.write(content_item['description'])
-    
-    # Display content based on type
-    st.header("Content")
-    if content_item["type"] == "Image":
-        if content_item["content"]:
-            try:
-                st.image(io.BytesIO(content_item["content"]), use_column_width=True)
-            except:
-                st.error("Unable to display image")
-    elif content_item["type"] == "Link":
-        st.markdown(f"🔗 [Open Original Link]({content_item['content']})")
-    else:
-        st.text_area("Content", content_item['content'], height=300, disabled=True)
-    
-    # Back button
-    if st.button("← Back to Library"):
-        st.session_state.selected_content = None
-        st.rerun()
-
 def main():
     st.title("Content Management Portal")
     
     # Initialize session state
     if 'current_view' not in st.session_state:
         st.session_state.current_view = 'upload'
-    if 'selected_content' not in st.session_state:
-        st.session_state.selected_content = None
     
     # Sidebar navigation
     nav_selection = st.sidebar.radio("Navigation", ["Upload Content", "View Content"])
@@ -67,10 +29,7 @@ def main():
     if nav_selection == "Upload Content":
         display_upload_form()
     else:
-        if st.session_state.selected_content:
-            display_content_detail(st.session_state.selected_content)
-        else:
-            display_content_view()
+        display_content_view()
 
 def display_upload_form():
     st.header("Upload Content")
@@ -235,23 +194,28 @@ def display_content_view():
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     # Display items in sorted order within each category
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                        col1, col2 = st.columns([5, 1])
-                        with col1:
-                            st.markdown(f'''
-                                <div style='background-color: #f0f2f6; padding: 10px; 
-                                     border-radius: 5px; margin: 10px 0;
-                                     border-left: 4px solid #1E88E5; cursor: pointer;'
-                                     onclick="window.location.href='#'">
-                                    <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
-                                    <p><strong>Category:</strong> {item['category']}</p>
-                                </div>
-                                ''', 
-                                unsafe_allow_html=True
-                            )
-                        with col2:
-                            if st.button("View", key=f"view_{item['title']}_{item['date']}"):
-                                st.session_state.selected_content = item
-                                st.rerun()
+                        st.markdown(f'''
+                            <div style='background-color: #f0f2f6; padding: 10px; 
+                                 border-radius: 5px; margin: 10px 0;
+                                 border-left: 4px solid #1E88E5;'>
+                                <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
+                                <p><strong>Category:</strong> {item['category']}</p>
+                                <p><strong>Description:</strong> {item['description']}</p>
+                            </div>
+                            ''', 
+                            unsafe_allow_html=True
+                        )
+                        
+                        if item["type"] == "Image":
+                            if item["content"]:
+                                try:
+                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
+                                except:
+                                    st.error("Unable to display image")
+                        elif item["type"] == "Link":
+                            st.markdown(f"🔗 [Open Link]({item['content']})")
+                        else:
+                            st.text_area("Content", item['content'], height=100, disabled=True)
             
             # Switch to next column
             col_idx = (col_idx + 1) % 2
