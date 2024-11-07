@@ -16,53 +16,55 @@ def scrape_excalidraw_content(url: str) -> str:
         if '/s/' in url:
             scene_id = url.split('/s/')[-1].split('/')[1]
         
-        # Try client-side API endpoint
-        client_api_url = f"https://excalidraw.com/api/v2/scene/{scene_id}"
+        # Use the Excalidraw API endpoint for scenes
+        api_url = f"https://excalidraw.com/api/v2/scenes/{scene_id}/export"
         headers = {
             'Accept': 'application/json',
             'User-Agent': 'Mozilla/5.0',
             'Content-Type': 'application/json'
         }
         
-        print(f"Attempting to fetch scene data from: {client_api_url}")
-        response = requests.get(client_api_url, headers=headers)
+        # Request scene data
+        print(f"Attempting to fetch scene data from: {api_url}")
+        response = requests.get(api_url, headers=headers)
         print(f"Response status code: {response.status_code}")
         
         if response.status_code == 200:
             try:
                 scene_data = response.json()
-                print(f"Successfully parsed scene data")
+                print("Successfully parsed scene data")
                 
-                # Extract text from elements
+                # Extract all text elements
                 texts = []
                 if 'elements' in scene_data:
                     for element in scene_data['elements']:
-                        if isinstance(element, dict) and element.get('type') == 'text' and element.get('text'):
-                            texts.append(element['text'])
-                        elif isinstance(element, dict) and element.get('label'):
-                            texts.append(element['label'])
+                        if element.get('type') == 'text':
+                            text = element.get('text', '').strip()
+                            if text:
+                                texts.append(text)
+                        # Also check for labels in other elements
+                        elif element.get('label'):
+                            texts.append(element.get('label').strip())
                 
                 if texts:
                     print(f"Found {len(texts)} text elements")
-                    return ' '.join(texts)
+                    content = ' '.join(texts)
+                    return content
+                
             except json.JSONDecodeError as je:
                 print(f"JSON decode error: {str(je)}")
-                print(f"Response content: {response.text[:200]}")  # Print first 200 chars of response
+                print(f"Response content: {response.text[:200]}")
+            
+        # If API fails or no text found, try parsing the HTML content
+        page_url = f"https://excalidraw.com/l/{scene_id}"
+        print(f"Attempting to fetch scene directly from: {page_url}")
         
-        # If API fails, try getting scene data directly
-        scene_url = f"https://excalidraw.com/l/{scene_id}"
-        print(f"Attempting to fetch scene directly from: {scene_url}")
-        
-        page_response = requests.get(scene_url)
+        page_response = requests.get(page_url)
         soup = BeautifulSoup(page_response.text, 'html.parser')
         
-        # Look for text content in specific elements
-        text_elements = soup.find_all(['text', 'tspan', '.excalidraw-textLayer', '[data-text-editor]'])
-        texts = []
-        for elem in text_elements:
-            text = elem.get_text().strip()
-            if text and len(text) > 2 and 'JavaScript' not in text and 'enable' not in text.lower():
-                texts.append(text)
+        # Look for text content in the page
+        text_elements = soup.find_all(['text', 'tspan', 'div.excalidraw-textLayer'])
+        texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
         
         if texts:
             print(f"Found {len(texts)} text elements from direct page scraping")
