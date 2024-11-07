@@ -300,26 +300,25 @@ def display_content_view():
                                     st.error("Unable to display image")
                         elif item["type"] == "Text":
                             st.markdown(f'''
-                                <details style="background: #1a1f3c; 
-                                           padding: 10px; 
-                                           border-radius: 8px; 
-                                           margin-top: 10px;
-                                           border: 1px solid #3949ab;">
-                                    <summary style="color: #ffffff; 
-                                              cursor: pointer; 
-                                              padding: 5px;
-                                              user-select: none;">
-                                        View Content
-                                    </summary>
-                                    <div style="background: #1a1f3c; 
-                                          padding: 10px; 
-                                          margin-top: 10px; 
-                                          border-radius: 5px;
-                                          color: #ffffff;
-                                          white-space: pre-wrap;">
-                                        {item['content']}
-                                    </div>
-                                </details>
+                                <div style="background: #000000; 
+                                     margin-top: 10px;
+                                     border-radius: 8px;
+                                     padding: 10px;">
+                                    <details>
+                                        <summary style="color: #ffffff; 
+                                                  cursor: pointer; 
+                                                  padding: 5px;
+                                                  user-select: none;">
+                                            View Content
+                                        </summary>
+                                        <div style="color: #ffffff;
+                                              padding: 10px;
+                                              margin-top: 10px;
+                                              white-space: pre-wrap;">
+                                            {item['content']}
+                                        </div>
+                                    </details>
+                                </div>
                             ''', unsafe_allow_html=True)
             
             col_idx = (col_idx + 1) % 2
