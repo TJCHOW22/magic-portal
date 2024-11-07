@@ -17,7 +17,13 @@ except Exception as e:
     st.error(f"Error updating content: {str(e)}")
 
 def main():
-    st.title("Content Management Portal")
+    st.markdown('''
+        <style>
+            .stApp {
+                background-color: #f8f9fa;
+            }
+        </style>
+    ''', unsafe_allow_html=True)
     
     # Initialize session state
     if 'current_view' not in st.session_state:
@@ -32,74 +38,86 @@ def main():
         display_content_view()
 
 def display_upload_form():
-    st.header("Upload Content")
-    
-    # Add prominent button to switch to content view
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown(
-            """
-            <div style='text-align: center; margin: 30px 0; padding: 20px; 
-                 background-color: #f0f2f6; border-radius: 10px; 
-                 border: 2px solid #4CAF50;'>
-                <h2 style='color: #2E7D32;'>📚 Content Library</h2>
-                <p style='color: #1B5E20;'>Browse and manage your organized content</p>
+    st.markdown('''
+        <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+            <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h1 style="color: #1E88E5; margin-bottom: 20px;">📤 Upload Content</h1>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("🔍 Browse Content Library", 
-                    use_container_width=True,
-                    type="primary",
-                    key="browse_library"):
-            st.session_state.current_view = 'view'
-            st.rerun()
+        </div>
+    ''', unsafe_allow_html=True)
     
-    st.markdown("---")
+    # Add loading animation container
+    st.markdown('''
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .loading-spinner {
+                width: 50px;
+                height: 50px;
+                border: 5px solid #f3f3f3;
+                border-top: 5px solid #1E88E5;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+        </style>
+    ''', unsafe_allow_html=True)
     
-    # Title input
-    title = st.text_input("Title", key="title_input")
-    
-    # Content input options
-    content_type = st.radio("Content Type", ["Text", "Link", "Image"])
-    
-    content = None
-    if content_type == "Text":
-        content = st.text_area("Enter your text content")
-    elif content_type == "Link":
-        content = st.text_input("Enter URL")
-    else:  # Image
-        uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
-        if uploaded_file is not None:
-            content = uploaded_file.read()
-            st.image(content, use_container_width=True)
-    
-    if st.button("Submit", type="primary") and title and content:
-        with st.spinner("Processing content..."):
-            try:
-                # Prepare content for analysis
-                if content_type == "Image":
-                    text_content = extract_text_from_image(content)
-                else:
-                    text_content = content
+    with st.container():
+        st.markdown('<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">', unsafe_allow_html=True)
+        
+        # Title input
+        title = st.text_input("Title", key="title_input")
+        
+        # Content input options
+        content_type = st.radio("Content Type", ["Text", "Link", "Image"])
+        
+        content = None
+        if content_type == "Text":
+            content = st.text_area("Enter your text content")
+        elif content_type == "Link":
+            content = st.text_input("Enter URL")
+        else:  # Image
+            uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
+            if uploaded_file is not None:
+                content = uploaded_file.read()
+                st.image(content, use_container_width=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        if st.button("Submit", type="primary") and title and content:
+            with st.spinner("Processing content..."):
+                st.markdown('''
+                    <div style="display: flex; justify-content: center; margin: 20px 0;">
+                        <div class="loading-spinner"></div>
+                    </div>
+                ''', unsafe_allow_html=True)
+                
+                try:
+                    # Prepare content for analysis
+                    if content_type == "Image":
+                        text_content = extract_text_from_image(content)
+                    else:
+                        text_content = content
+                        
+                    # Analyze content using OpenAI
+                    analysis = analyze_content(text_content, content_type)
                     
-                # Analyze content using OpenAI
-                analysis = analyze_content(text_content, content_type)
-                
-                # Save content with metadata
-                content_data = {
-                    "title": title,
-                    "type": content_type,
-                    "content": content if isinstance(content, str) else None,
-                    "category": analysis["category"],
-                    "description": analysis["description"],
-                    "date": datetime.datetime.now().strftime("%m/%d")
-                }
-                
-                save_content(content_data)
-                st.success("Content successfully uploaded and categorized!")
-            except Exception as e:
-                st.error(f"Error processing content: {str(e)}")
+                    # Save content with metadata
+                    content_data = {
+                        "title": title,
+                        "type": content_type,
+                        "content": content if isinstance(content, str) else None,
+                        "category": analysis["category"],
+                        "description": analysis["description"],
+                        "date": datetime.datetime.now().strftime("%m/%d")
+                    }
+                    
+                    save_content(content_data)
+                    st.success("Content successfully uploaded and categorized!")
+                except Exception as e:
+                    st.error(f"Error processing content: {str(e)}")
 
 def process_natural_language_query(query: str, content_items: list) -> list:
     """
@@ -139,47 +157,73 @@ def process_natural_language_query(query: str, content_items: list) -> list:
         return content_items
 
 def display_content_view():
-    # Add welcome section
     st.markdown('''
-        <div style='background: linear-gradient(90deg, #1a237e 0%, #283593 100%);
+        <div style="background: linear-gradient(90deg, #1a237e 0%, #283593 100%);
              color: white; 
              padding: 20px; 
-             border-radius: 10px; 
-             margin-bottom: 20px;'>
-            <h1 style='margin: 0;'>📚 Content Library</h1>
-            <p style='margin: 10px 0 0 0;'>Organize and discover your content</p>
+             border-radius: 15px; 
+             margin-bottom: 20px;">
+            <h1 style="margin: 0;">📚 Content Library</h1>
+            <p style="margin: 10px 0 0 0;">Organize and discover your content</p>
         </div>
     ''', unsafe_allow_html=True)
     
-    # Load content for stats
+    # Load content
     try:
         content_items = load_content()
-        # Sort content items by date (most recent first)
         content_items.sort(key=lambda x: x['date'], reverse=True)
     except Exception as e:
         st.error(f"Error loading content: {str(e)}")
         content_items = []
     
-    # Add quick stats
+    # Quick stats
     total_items = len(content_items)
     build_items = len([i for i in content_items if i['category'] == 'Build'])
     sales_items = len([i for i in content_items if i['category'] == 'Sales'])
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric('Total Items', total_items)
-    with col2:
-        st.metric('Build Items', build_items)
-    with col3:
-        st.metric('Sales Items', sales_items)
-    
-    # Update search and filter section
     st.markdown('''
-        <div style='background-color: #f8f9fa; 
-             padding: 15px; 
-             border-radius: 10px; 
-             margin: 15px 0;'>
-            <h3 style='margin: 0 0 10px 0;'>Search & Filter</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+    ''', unsafe_allow_html=True)
+    
+    metrics = [
+        {"label": "Total Items", "value": total_items},
+        {"label": "Build Items", "value": build_items},
+        {"label": "Sales Items", "value": sales_items}
+    ]
+    
+    for metric in metrics:
+        st.markdown(f'''
+            <div style="background: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h3 style="color: #1E88E5; margin: 0;">{metric['value']}</h3>
+                <p style="color: #666; margin: 5px 0 0 0;">{metric['label']}</p>
+            </div>
+        ''', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Enhanced search section
+    st.markdown('''
+        <div style="background: #f8f9fa;
+             padding: 20px;
+             border-radius: 15px;
+             margin: 20px 0;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" 
+                       placeholder="Search content..."
+                       style="flex: 1;
+                              padding: 10px;
+                              border: 2px solid #e0e0e0;
+                              border-radius: 10px;
+                              font-size: 16px;">
+                <button style="background: #1E88E5;
+                       color: white;
+                       border: none;
+                       padding: 10px 20px;
+                       border-radius: 10px;
+                       cursor: pointer;">
+                    Search
+                </button>
+            </div>
         </div>
     ''', unsafe_allow_html=True)
     
@@ -198,12 +242,12 @@ def display_content_view():
     if search_query:
         content_items = process_natural_language_query(search_query, content_items)
     
-    # Filter by category while maintaining sort order
+    # Filter by category
     if selected_category != "All":
         content_items = [item for item in content_items 
                         if item["category"] == selected_category]
     
-    # Group content by category while preserving sort order within each category
+    # Group content by category
     content_by_category = {}
     for item in content_items:
         category = item["category"]
@@ -211,39 +255,41 @@ def display_content_view():
             content_by_category[category] = []
         content_by_category[category].append(item)
     
-    # Display content organized by category with side-by-side folders
+    # Display content
     if not content_items:
         st.info("No content found matching your criteria.")
     else:
-        # Create columns for categories
-        cols = st.columns(2)  # Two columns for Build and Sales
-        
-        # Track which column to use (alternating between 0 and 1)
+        cols = st.columns(2)
         col_idx = 0
         
         for category, items in content_by_category.items():
-            # Display category in current column
             with cols[col_idx]:
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
-                    # Display items in sorted order within each category
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
                         st.markdown(f'''
-                            <div style='background-color: #f8f9fa; 
-                                 padding: 15px; 
-                                 border-radius: 10px; 
+                            <div style="background: white; 
+                                 padding: 20px; 
+                                 border-radius: 15px;
                                  margin: 15px 0;
                                  border-left: 5px solid #1E88E5;
-                                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-                                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                                    <h4 style='margin: 0; color: #1a237e;'>📌 {item['title']}</h4>
-                                    <span style='color: #666; font-size: 0.9em;'>{item['date']}</span>
+                                 box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+                                 transition: transform 0.2s, box-shadow 0.2s;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h3 style="margin: 0; color: #1a237e;">{item['title']}</h3>
+                                    <span style="color: #666; font-size: 0.9em;">{item['date']}</span>
                                 </div>
-                                <div style='margin-top: 10px;'>
-                                    <span style='background-color: #e3f2fd; padding: 3px 8px; border-radius: 12px; font-size: 0.9em;'>
+                                <div style="margin: 10px 0;">
+                                    <span style="background: #e3f2fd; 
+                                          padding: 5px 10px; 
+                                          border-radius: 15px; 
+                                          font-size: 0.9em;
+                                          color: #1565C0;">
                                         {item['category']}
                                     </span>
                                 </div>
-                                <p style='margin: 10px 0; color: #333;'>{item['description']}</p>
+                                <p style="margin: 15px 0; color: #333; line-height: 1.6;">
+                                    {item['description']}
+                                </p>
                             </div>
                         ''', unsafe_allow_html=True)
                         
@@ -258,8 +304,25 @@ def display_content_view():
                         else:
                             st.text_area("Content", item['content'], height=100, disabled=True)
             
-            # Switch to next column
             col_idx = (col_idx + 1) % 2
+    
+    # Add floating action button
+    st.markdown('''
+        <div style="position: fixed; 
+             bottom: 20px; 
+             right: 20px; 
+             z-index: 999;">
+            <button style="background: #1E88E5;
+                   color: white;
+                   border: none;
+                   padding: 15px;
+                   border-radius: 50%;
+                   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                   cursor: pointer;">
+                ↑
+            </button>
+        </div>
+    ''', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
