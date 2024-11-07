@@ -12,9 +12,11 @@ def analyze_content(content: str) -> dict:
     Analyze content using OpenAI API to determine category and generate description
     """
     prompt = f"""
-    Analyze the following content and provide:
-    1. A category (choose from: Sales, Marketing, Tech, Finance, Operations)
-    2. A 2-3 sentence description summarizing the content
+    Analyze the following content and categorize it into one of these two categories:
+    - "Building" (for development, coding, and technical content)
+    - "Sales" (for customer acquisition and business-related content)
+    
+    Also provide a 2-3 sentence description summarizing the content.
     
     Content: {content}
     
@@ -26,7 +28,7 @@ def analyze_content(content: str) -> dict:
         response = openai_client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json"}
+            response_format={"type": "json_object"}
         )
         
         return eval(response.choices[0].message.content)
@@ -48,3 +50,29 @@ def extract_text_from_image(image_data: bytes) -> str:
     except Exception as e:
         print(f"Error in image text extraction: {str(e)}")
         return "Unable to extract text from image"
+
+def recategorize_content(content: str) -> str:
+    """
+    Recategorize existing content into new categories
+    """
+    try:
+        prompt = f"""
+        Analyze the following content and categorize it into one of these categories:
+        - "Building" (for development, coding, and technical content)
+        - "Sales" (for customer acquisition and business-related content)
+        
+        Content: {content}
+        
+        Return only the category name as a string.
+        """
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "text"}
+        )
+        
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error in content recategorization: {str(e)}")
+        return "Uncategorized"

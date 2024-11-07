@@ -1,9 +1,10 @@
 import streamlit as st
 import datetime
-from utils.content_analyzer import analyze_content, extract_text_from_image
+from utils.content_analyzer import analyze_content, extract_text_from_image, recategorize_content
 from utils.data_manager import save_content, load_content, get_categories
 import io
 from PIL import Image
+import json
 
 st.set_page_config(page_title="Content Management Portal", layout="wide")
 
@@ -44,7 +45,7 @@ def display_upload_form():
                     type="primary",
                     key="browse_library"):
             st.session_state.current_view = 'view'
-            st.experimental_rerun()
+            st.rerun()
     
     st.markdown("---")
     
@@ -89,26 +90,62 @@ def display_upload_form():
             save_content(content_data)
             st.success("Content successfully uploaded and categorized!")
 
+def process_natural_language_query(query: str, content_items: list) -> list:
+    """
+    Process natural language search query using OpenAI to match content
+    """
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Create embeddings for the query
+        query_response = client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=query
+        )
+        query_embedding = query_response.data[0].embedding
+        
+        # Process each content item and calculate similarity
+        results = []
+        for item in content_items:
+            # Create embedding for content description
+            content_text = f"{item['title']} {item['description']}"
+            content_response = client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=content_text
+            )
+            content_embedding = content_response.data[0].embedding
+            
+            # Calculate cosine similarity
+            similarity = sum(a * b for a, b in zip(query_embedding, content_embedding))
+            results.append((item, similarity))
+        
+        # Sort by similarity score
+        results.sort(key=lambda x: x[1], reverse=True)
+        return [item for item, score in results]
+    
+    except Exception as e:
+        print(f"Error in natural language search: {str(e)}")
+        return content_items
+
 def display_content_view():
     st.header("Content Library")
     
     # Search and filter options
     col1, col2 = st.columns([2, 1])
     with col1:
-        search_query = st.text_input("🔍 Search by keywords")
+        search_query = st.text_input("🔍 Search using natural language")
     with col2:
         categories = get_categories()
         selected_category = st.selectbox("📁 Filter by Category", ["All"] + categories)
     
-    # Load and display content
+    # Load content
     content_items = load_content()
     
-    # Filter content based on search and category
+    # Apply natural language search if query exists
     if search_query:
-        content_items = [item for item in content_items 
-                        if search_query.lower() in item["title"].lower() 
-                        or search_query.lower() in item["description"].lower()]
+        content_items = process_natural_language_query(search_query, content_items)
     
+    # Filter by category
     if selected_category != "All":
         content_items = [item for item in content_items 
                         if item["category"] == selected_category]
@@ -126,7 +163,6 @@ def display_content_view():
         st.info("No content found matching your criteria.")
     else:
         for category, items in content_by_category.items():
-            # Category header with custom styling
             st.markdown(f"""
                 <div style='background-color: #f0f2f6; padding: 10px; 
                      border-radius: 5px; margin-top: 20px;'>
