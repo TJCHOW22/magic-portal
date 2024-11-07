@@ -69,7 +69,7 @@ def display_upload_form():
         uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
         if uploaded_file is not None:
             content = uploaded_file.read()
-            st.image(content, caption="Uploaded Image", use_column_width=True)
+            st.image(content, use_container_width=True)
     
     if st.button("Submit", type="primary") and title and content:
         with st.spinner("Processing content..."):
@@ -80,7 +80,7 @@ def display_upload_form():
                 text_content = content
                 
             # Analyze content using OpenAI
-            analysis = analyze_content(text_content)
+            analysis = analyze_content(text_content, content_type)
             
             # Save content with metadata
             content_data = {
@@ -192,7 +192,11 @@ def display_content_view():
                     )
                     
                     if item["type"] == "Image":
-                        st.image(item["content"], use_column_width=True)
+                        if item["content"]:
+                            try:
+                                st.image(io.BytesIO(item["content"]), use_container_width=True)
+                            except:
+                                st.error("Unable to display image")
                     elif item["type"] == "Link":
                         st.markdown(f"🔗 [Open Link]({item['content']})")
                     else:
