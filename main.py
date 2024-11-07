@@ -87,6 +87,31 @@ def main():
                 color: white !important;
                 border: 1px solid #3949ab !important;
             }
+            
+            /* Custom toggle button */
+            .toggle-button {
+                background: #3949ab;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                margin-top: 10px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+            
+            .toggle-button:hover {
+                background: #4a5ac9;
+            }
+            
+            .content-section {
+                display: none;
+                background: #000000;
+                padding: 15px;
+                margin-top: 10px;
+                border-radius: 8px;
+                border: 1px solid #3949ab;
+            }
         </style>
     ''', unsafe_allow_html=True)
     
@@ -241,54 +266,75 @@ def display_content_view():
             with cols[col_idx]:
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                        st.markdown(f'''
-                            <div style="background: #000000; 
-                                 padding: 20px; 
-                                 border-radius: 15px;
-                                 margin: 15px 0;
-                                 border-left: 5px solid #3949ab;
-                                 box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
-                                    <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
-                                </div>
-                                <div style="margin: 10px 0;">
-                                    <span style="background: #3949ab; 
-                                          padding: 5px 10px; 
-                                          border-radius: 15px; 
-                                          font-size: 0.9em;
-                                          color: white;">
-                                        {item['category']}
-                                    </span>
-                                </div>
-                                <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
-                                    {item['description']}
-                                </p>
-                                {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
-                            </div>
-                        ''', unsafe_allow_html=True)
-                        
-                        # Handle text content with Streamlit components
                         if item["type"] == "Text":
                             toggle_key = f"toggle_{item['title']}_{item['date']}"
-                            if st.button("View Content", key=toggle_key):
-                                st.markdown(f'''
-                                    <div style="background: #000000; 
-                                          padding: 10px; 
-                                          margin-top: 10px; 
-                                          border-radius: 5px;">
-                                        <pre style="color: #ffffff; 
-                                              white-space: pre-wrap; 
+                            st.markdown(f'''
+                                <div style="background: #000000; 
+                                     padding: 20px; 
+                                     border-radius: 15px;
+                                     margin: 15px 0;
+                                     border-left: 5px solid #3949ab;
+                                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
+                                        <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
+                                    </div>
+                                    <div style="margin: 10px 0;">
+                                        <span style="background: #3949ab; 
+                                              padding: 5px 10px; 
+                                              border-radius: 15px; 
+                                              font-size: 0.9em;
+                                              color: white;">
+                                            {item['category']}
+                                        </span>
+                                    </div>
+                                    <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
+                                        {item['description']}
+                                    </p>
+                                    <button class="toggle-button" 
+                                            onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+                                        View Content
+                                    </button>
+                                    <div class="content-section">
+                                        <pre style="color: #ffffff;
+                                              white-space: pre-wrap;
                                               margin: 0;
                                               font-family: monospace;">
                                             {item['content']}
                                         </pre>
                                     </div>
-                                ''', unsafe_allow_html=True)
-                        
-                        # Handle image content
-                        elif item["type"] == "Image":
-                            if item["content"]:
+                                </div>
+                            ''', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'''
+                                <div style="background: #000000; 
+                                     padding: 20px; 
+                                     border-radius: 15px;
+                                     margin: 15px 0;
+                                     border-left: 5px solid #3949ab;
+                                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
+                                        <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
+                                    </div>
+                                    <div style="margin: 10px 0;">
+                                        <span style="background: #3949ab; 
+                                              padding: 5px 10px; 
+                                              border-radius: 15px; 
+                                              font-size: 0.9em;
+                                              color: white;">
+                                            {item['category']}
+                                        </span>
+                                    </div>
+                                    <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
+                                        {item['description']}
+                                    </p>
+                                    {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
+                                </div>
+                            ''', unsafe_allow_html=True)
+                            
+                            # Handle image content
+                            if item["type"] == "Image" and item["content"]:
                                 try:
                                     st.image(io.BytesIO(item["content"]), use_container_width=True)
                                 except:
