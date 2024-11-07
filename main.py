@@ -141,7 +141,7 @@ def process_natural_language_query(query: str, content_items: list) -> list:
 def display_content_view():
     st.header("Content Library")
     
-    # Search and filter options
+    # Search and filter options at the top
     col1, col2 = st.columns([2, 1])
     with col1:
         search_query = st.text_input("🔍 Search using natural language")
@@ -149,28 +149,20 @@ def display_content_view():
         categories = get_categories()
         selected_category = st.selectbox("📁 Filter by Category", ["All"] + categories)
     
-    # Load content with error handling
-    try:
-        content_items = load_content()
-        # Sort content items by date (most recent first)
-        content_items.sort(key=lambda x: x['date'], reverse=True)
-    except json.JSONDecodeError:
-        st.error("Error loading content. The content file may be corrupted.")
-        content_items = []
-    except Exception as e:
-        st.error(f"Error loading content: {str(e)}")
-        content_items = []
+    # Load and sort content
+    content_items = load_content()
+    content_items.sort(key=lambda x: x['date'], reverse=True)
     
     # Apply natural language search if query exists
     if search_query:
         content_items = process_natural_language_query(search_query, content_items)
     
-    # Filter by category while maintaining sort order
+    # Filter by category
     if selected_category != "All":
         content_items = [item for item in content_items 
                         if item["category"] == selected_category]
     
-    # Group content by category while preserving sort order within each category
+    # Group by category
     content_by_category = {}
     for item in content_items:
         category = item["category"]
@@ -178,47 +170,56 @@ def display_content_view():
             content_by_category[category] = []
         content_by_category[category].append(item)
     
-    # Display content organized by category with side-by-side folders
-    if not content_items:
-        st.info("No content found matching your criteria.")
-    else:
-        # Create columns for categories
-        cols = st.columns(2)  # Two columns for Build and Sales
-        
-        # Track which column to use (alternating between 0 and 1)
-        col_idx = 0
-        
-        for category, items in content_by_category.items():
-            # Display category in current column
-            with cols[col_idx]:
-                with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
-                    # Display items in sorted order within each category
-                    for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                        st.markdown(f'''
-                            <div style='background-color: #f0f2f6; padding: 10px; 
-                                 border-radius: 5px; margin: 10px 0;
-                                 border-left: 4px solid #1E88E5;'>
-                                <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
-                                <p><strong>Category:</strong> {item['category']}</p>
-                                <p><strong>Description:</strong> {item['description']}</p>
-                            </div>
-                            ''', 
-                            unsafe_allow_html=True
-                        )
-                        
-                        if item["type"] == "Image":
-                            if item["content"]:
-                                try:
-                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
-                                except:
-                                    st.error("Unable to display image")
-                        elif item["type"] == "Link":
-                            st.markdown(f"🔗 [Open Link]({item['content']})")
-                        else:
-                            st.text_area("Content", item['content'], height=100, disabled=True)
+    # Display content in table format by category
+    for category, items in content_by_category.items():
+        with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
+            # Custom CSS for the table
+            st.markdown('''
+                <style>
+                    .content-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 10px 0;
+                        color: #e0e0e0;
+                    }
+                    .content-table th {
+                        background-color: #1e1e1e;
+                        padding: 12px;
+                        text-align: left;
+                        border-bottom: 2px solid #4CAF50;
+                    }
+                    .content-table td {
+                        padding: 12px;
+                        border-bottom: 1px solid #333;
+                    }
+                </style>
+            ''', unsafe_allow_html=True)
             
-            # Switch to next column
-            col_idx = (col_idx + 1) % 2
+            # Create table headers
+            table_html = '''
+                <table class="content-table">
+                    <tr>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Link</th>
+                        <th>Description</th>
+                    </tr>
+            '''
+            
+            # Add table rows
+            for item in items:
+                link_cell = f'<a href="{item["content"]}" target="_blank">🔗 Open Link</a>' if item["type"] == "Link" else ""
+                table_html += f'''
+                    <tr>
+                        <td>{item["date"]}</td>
+                        <td>{item["title"]}</td>
+                        <td>{link_cell}</td>
+                        <td>{item["description"]}</td>
+                    </tr>
+                '''
+            
+            table_html += '</table>'
+            st.markdown(table_html, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
