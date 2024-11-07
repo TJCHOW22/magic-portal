@@ -90,7 +90,7 @@ def analyze_content(content: str, content_type: str = "Text") -> dict:
         # Get content to analyze
         if content_type == "Link":
             content_to_analyze = scrape_web_content(content)
-            if "Unable to extract content" in content_to_analyze:
+            if not content_to_analyze or "Unable to extract content" in content_to_analyze:
                 return {
                     "category": "Build",
                     "description": "Unable to extract content from the diagram. Please ensure the diagram is publicly accessible."
@@ -101,29 +101,51 @@ def analyze_content(content: str, content_type: str = "Text") -> dict:
         # Create a more specific prompt for better analysis
         prompt = f"""
         Analyze the following content and provide:
-        1. Category: Either "Build" (for technical/development content) or "Sales" (for business/customer content)
-        2. A concise 2-3 sentence description summarizing the key points.
-        
+        1. Category: Categorize as either:
+           - "Build" if the content is about technical development, coding, or infrastructure
+           - "Sales" if the content is about business strategy, customer acquisition, or marketing
+        2. Description: Write a clear 2-3 sentence summary of the key points in the content.
+           Focus on the main ideas and objectives discussed.
+
         Content to analyze: {content_to_analyze}
-        
-        Respond in JSON format:
-        {{"category": "Build_or_Sales", "description": "Your_summary"}}
+
+        Respond in JSON format like this:
+        {{
+            "category": "Build or Sales",
+            "description": "Your concise summary here"
+        }}
         """
         
         response = openai_client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{
+                "role": "system",
+                "content": "You are an expert content analyzer. Your task is to categorize content and write clear, concise summaries."
+            }, {
+                "role": "user",
+                "content": prompt
+            }]
         )
         
         result = json.loads(response.choices[0].message.content)
+        
+        # Validate the category
+        if result["category"] not in ["Build", "Sales"]:
+            # Default categorization based on keywords
+            result["category"] = "Build" if any(word in content_to_analyze.lower() 
+                for word in ["technical", "code", "develop", "infrastructure", "api"]) else "Sales"
+        
         return {
             "category": result["category"],
             "description": result["description"]
         }
     except Exception as e:
         print(f"Error in content analysis: {str(e)}")
+        # Make a simpler attempt at categorization
+        is_technical = any(word in content_to_analyze.lower() 
+            for word in ["technical", "code", "develop", "infrastructure", "api"])
         return {
-            "category": "Build",
+            "category": "Build" if is_technical else "Sales",
             "description": f"Error analyzing content: {str(e)}"
         }
 
