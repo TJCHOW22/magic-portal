@@ -1,6 +1,7 @@
 import json
 import os
 from typing import List, Dict
+from .content_analyzer import recategorize_content
 
 DATA_FILE = "data/content.json"
 
@@ -41,3 +42,23 @@ def get_categories() -> List[str]:
     content = load_content()
     categories = set(item["category"] for item in content)
     return sorted(list(categories))
+
+def update_uncategorized_content() -> None:
+    """Update all uncategorized content with new categories"""
+    try:
+        with open(DATA_FILE, 'r') as f:
+            content_items = json.load(f)
+        
+        updated = False
+        for item in content_items:
+            if item["category"] == "Uncategorized":
+                content_text = f"{item['title']} {item.get('description', '')}"
+                item["category"] = recategorize_content(content_text)
+                updated = True
+        
+        if updated:
+            with open(DATA_FILE, 'w') as f:
+                json.dump(content_items, f)
+    
+    except Exception as e:
+        print(f"Error updating uncategorized content: {str(e)}")

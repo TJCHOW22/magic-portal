@@ -1,12 +1,17 @@
 import streamlit as st
 import datetime
+import os
 from utils.content_analyzer import analyze_content, extract_text_from_image, recategorize_content
-from utils.data_manager import save_content, load_content, get_categories
+from utils.data_manager import save_content, load_content, get_categories, update_uncategorized_content
 import io
 from PIL import Image
 import json
+from openai import OpenAI
 
 st.set_page_config(page_title="Content Management Portal", layout="wide")
+
+# Update uncategorized content at startup
+update_uncategorized_content()
 
 def main():
     st.title("Content Management Portal")
