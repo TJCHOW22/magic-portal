@@ -16,6 +16,43 @@ try:
 except Exception as e:
     st.error(f"Error updating content: {str(e)}")
 
+def process_natural_language_query(query: str, content_items: list) -> list:
+    """
+    Process natural language search query using OpenAI to match content
+    """
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Create embeddings for the query
+        query_response = client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=query
+        )
+        query_embedding = query_response.data[0].embedding
+        
+        # Process each content item and calculate similarity
+        results = []
+        for item in content_items:
+            # Create embedding for content description
+            content_text = f"{item['title']} {item['description']}"
+            content_response = client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=content_text
+            )
+            content_embedding = content_response.data[0].embedding
+            
+            # Calculate cosine similarity
+            similarity = sum(a * b for a, b in zip(query_embedding, content_embedding))
+            results.append((item, similarity))
+        
+        # Sort by similarity score
+        results.sort(key=lambda x: x[1], reverse=True)
+        return [item for item, score in results]
+    
+    except Exception as e:
+        st.error(f"Error in natural language search: {str(e)}")
+        return content_items
+
 def main():
     # Dark theme styling
     st.markdown('''
@@ -74,24 +111,6 @@ def display_upload_form():
         </div>
     ''', unsafe_allow_html=True)
     
-    # Add loading animation container
-    st.markdown('''
-        <style>
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .loading-spinner {
-                width: 50px;
-                height: 50px;
-                border: 5px solid #2a325a;
-                border-top: 5px solid #3949ab;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            }
-        </style>
-    ''', unsafe_allow_html=True)
-    
     with st.container():
         st.markdown('<div style="background: #232b50; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); margin: 20px 0;">', unsafe_allow_html=True)
         
@@ -116,12 +135,6 @@ def display_upload_form():
         
         if st.button("Submit", type="primary") and title and content:
             with st.spinner("Processing content..."):
-                st.markdown('''
-                    <div style="display: flex; justify-content: center; margin: 20px 0;">
-                        <div class="loading-spinner"></div>
-                    </div>
-                ''', unsafe_allow_html=True)
-                
                 try:
                     # Prepare content for analysis
                     if content_type == "Image":
@@ -146,43 +159,6 @@ def display_upload_form():
                     st.success("Content successfully uploaded and categorized!")
                 except Exception as e:
                     st.error(f"Error processing content: {str(e)}")
-
-def process_natural_language_query(query: str, content_items: list) -> list:
-    """
-    Process natural language search query using OpenAI to match content
-    """
-    try:
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        
-        # Create embeddings for the query
-        query_response = client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=query
-        )
-        query_embedding = query_response.data[0].embedding
-        
-        # Process each content item and calculate similarity
-        results = []
-        for item in content_items:
-            # Create embedding for content description
-            content_text = f"{item['title']} {item['description']}"
-            content_response = client.embeddings.create(
-                model="text-embedding-ada-002",
-                input=content_text
-            )
-            content_embedding = content_response.data[0].embedding
-            
-            # Calculate cosine similarity
-            similarity = sum(a * b for a, b in zip(query_embedding, content_embedding))
-            results.append((item, similarity))
-        
-        # Sort by similarity score
-        results.sort(key=lambda x: x[1], reverse=True)
-        return [item for item, score in results]
-    
-    except Exception as e:
-        st.error(f"Error in natural language search: {str(e)}")
-        return content_items
 
 def display_content_view():
     st.markdown('''
@@ -289,29 +265,19 @@ def display_content_view():
                                     {item['description']}
                                 </p>
                                 {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
-                            </div>
-                        ''', unsafe_allow_html=True)
-
-                        if item["type"] == "Image":
-                            if item["content"]:
-                                try:
-                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
-                                except:
-                                    st.error("Unable to display image")
-                        elif item["type"] == "Text":
-                            st.markdown(f'''
-                                <details style="background: #1a1f3c; 
-                                           padding: 10px; 
-                                           border-radius: 8px; 
-                                           margin-top: 10px;
-                                           border: 1px solid #3949ab;">
+                                {f"""
+                                <details style="background: #000000; 
+                                            padding: 10px; 
+                                            border-radius: 8px; 
+                                            margin-top: 10px;
+                                            border: 1px solid #3949ab;">
                                     <summary style="color: #ffffff; 
                                               cursor: pointer; 
                                               padding: 5px;
                                               user-select: none;">
                                         View Content
                                     </summary>
-                                    <div style="background: #1a1f3c; 
+                                    <div style="background: #000000; 
                                           padding: 10px; 
                                           margin-top: 10px; 
                                           border-radius: 5px;
@@ -320,27 +286,18 @@ def display_content_view():
                                         {item['content']}
                                     </div>
                                 </details>
-                            ''', unsafe_allow_html=True)
+                                """ if item["type"] == "Text" else ''}
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        if item["type"] == "Image":
+                            if item["content"]:
+                                try:
+                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
+                                except:
+                                    st.error("Unable to display image")
             
             col_idx = (col_idx + 1) % 2
-    
-    # Add floating action button
-    st.markdown('''
-        <div style="position: fixed; 
-             bottom: 20px; 
-             right: 20px; 
-             z-index: 999;">
-            <button style="background: #3949ab;
-                   color: white;
-                   border: none;
-                   padding: 15px;
-                   border-radius: 50%;
-                   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                   cursor: pointer;">
-                ↑
-            </button>
-        </div>
-    ''', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
