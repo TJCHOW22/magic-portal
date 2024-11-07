@@ -61,10 +61,12 @@ def main():
                 background-color: #1a1f3c;  /* Dark navy blue */
                 color: #ffffff;  /* White text */
             }
+            
             /* Make all text white by default */
             p, h1, h2, h3, h4, h5, h6 {
                 color: #ffffff !important;
             }
+            
             /* Style content cards */
             div[data-testid="stExpander"] {
                 background-color: #232b50;  /* Slightly lighter navy blue */
@@ -72,45 +74,25 @@ def main():
                 padding: 10px;
                 margin: 10px 0;
             }
+            
             /* Style buttons */
             button {
                 background-color: #3949ab !important;
                 color: white !important;
             }
+            
             /* Style text inputs */
             input[type="text"], textarea {
                 background-color: #2a325a !important;
                 color: white !important;
                 border: 1px solid #3949ab !important;
             }
-            /* Custom toggle button */
-            .toggle-button {
-                background: #3949ab;
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                border-radius: 8px;
-                margin-top: 10px;
-                cursor: pointer;
-                transition: background-color 0.3s;
-            }
-            .toggle-button:hover {
-                background: #4a5ac9;
-            }
-            .content-section {
-                display: none;
-                background: #000000;
-                padding: 15px;
-                margin-top: 10px;
-                border-radius: 8px;
-                border: 1px solid #3949ab;
-            }
         </style>
     ''', unsafe_allow_html=True)
     
-    # Initialize session state for content toggles
-    if 'content_toggles' not in st.session_state:
-        st.session_state.content_toggles = {}
+    # Initialize session state
+    if 'current_view' not in st.session_state:
+        st.session_state.current_view = 'upload'
     
     # Sidebar navigation
     nav_selection = st.sidebar.radio("Navigation", ["Upload Content", "View Content"])
@@ -259,85 +241,59 @@ def display_content_view():
             with cols[col_idx]:
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                        if item["type"] == "Text":
-                            # Create a unique key for this item
-                            toggle_key = f"toggle_{item['title']}_{item['date']}".replace(' ', '_')
-                            
-                            st.markdown(f'''
-                                <div style="background: #000000; 
-                                     padding: 20px; 
-                                     border-radius: 15px;
-                                     margin: 15px 0;
-                                     border-left: 5px solid #3949ab;
-                                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
-                                        <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
-                                    </div>
-                                    <div style="margin: 10px 0;">
-                                        <span style="background: #3949ab; 
-                                              padding: 5px 10px; 
-                                              border-radius: 15px; 
-                                              font-size: 0.9em;
-                                              color: white;">
-                                            {item['category']}
-                                        </span>
-                                    </div>
-                                    <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
-                                        {item['description']}
-                                    </p>
+                        st.markdown(f'''
+                            <div style="background: #000000; 
+                                 padding: 20px; 
+                                 border-radius: 15px;
+                                 margin: 15px 0;
+                                 border-left: 5px solid #3949ab;
+                                 box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
+                                    <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
                                 </div>
-                            ''', unsafe_allow_html=True)
-                            
-                            # Use expander instead of button for toggle
-                            with st.expander("View Content", expanded=False):
-                                st.markdown(f'''
+                                <div style="margin: 10px 0;">
+                                    <span style="background: #3949ab; 
+                                          padding: 5px 10px; 
+                                          border-radius: 15px; 
+                                          font-size: 0.9em;
+                                          color: white;">
+                                        {item['category']}
+                                    </span>
+                                </div>
+                                <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
+                                    {item['description']}
+                                </p>
+                                {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
+                                {f"""
+                                <details style="background: #000000; 
+                                            padding: 10px; 
+                                            border-radius: 8px; 
+                                            margin-top: 10px;
+                                            border: 1px solid #3949ab;">
+                                    <summary style="color: #ffffff; 
+                                              cursor: pointer; 
+                                              padding: 5px;
+                                              user-select: none;">
+                                        View Content
+                                    </summary>
                                     <div style="background: #000000; 
-                                          padding: 15px;
-                                          margin-top: 10px;
-                                          border-radius: 8px;
-                                          border: 1px solid #3949ab;">
-                                        <pre style="color: #ffffff; 
-                                              white-space: pre-wrap;
-                                              margin: 0;
-                                              font-family: monospace;">
-                                            {item['content']}
-                                        </pre>
+                                          padding: 10px; 
+                                          margin-top: 10px; 
+                                          border-radius: 5px;
+                                          color: #ffffff;
+                                          white-space: pre-wrap;">
+                                        {item['content']}
                                     </div>
-                                ''', unsafe_allow_html=True)
-
-                        else:
-                            st.markdown(f'''
-                                <div style="background: #000000; 
-                                     padding: 20px; 
-                                     border-radius: 15px;
-                                     margin: 15px 0;
-                                     border-left: 5px solid #3949ab;
-                                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
-                                        <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
-                                    </div>
-                                    <div style="margin: 10px 0;">
-                                        <span style="background: #3949ab; 
-                                              padding: 5px 10px; 
-                                              border-radius: 15px; 
-                                              font-size: 0.9em;
-                                              color: white;">
-                                            {item['category']}
-                                        </span>
-                                    </div>
-                                    <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
-                                        {item['description']}
-                                    </p>
-                                    {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
-                                </div>
-                            ''', unsafe_allow_html=True)
-                            
-                            # Handle image content
-                            if item["type"] == "Image" and item["content"]:
+                                </details>
+                                """ if item["type"] == "Text" else ''}
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+                        if item["type"] == "Image":
+                            if item["content"]:
                                 try:
-                                    st.image(io.BytesIO(item["content"]), use_container_width=True)
+                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
                                 except:
                                     st.error("Unable to display image")
             
