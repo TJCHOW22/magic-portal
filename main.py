@@ -17,10 +17,38 @@ except Exception as e:
     st.error(f"Error updating content: {str(e)}")
 
 def main():
+    # Dark theme styling
     st.markdown('''
         <style>
             .stApp {
-                background-color: #f8f9fa;
+                background-color: #1a1f3c;  /* Dark navy blue */
+                color: #ffffff;  /* White text */
+            }
+            
+            /* Make all text white by default */
+            p, h1, h2, h3, h4, h5, h6 {
+                color: #ffffff !important;
+            }
+            
+            /* Style content cards */
+            div[data-testid="stExpander"] {
+                background-color: #232b50;  /* Slightly lighter navy blue */
+                border-radius: 10px;
+                padding: 10px;
+                margin: 10px 0;
+            }
+            
+            /* Style buttons */
+            button {
+                background-color: #3949ab !important;
+                color: white !important;
+            }
+            
+            /* Style text inputs */
+            input[type="text"], textarea {
+                background-color: #2a325a !important;
+                color: white !important;
+                border: 1px solid #3949ab !important;
             }
         </style>
     ''', unsafe_allow_html=True)
@@ -40,8 +68,8 @@ def main():
 def display_upload_form():
     st.markdown('''
         <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-            <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h1 style="color: #1E88E5; margin-bottom: 20px;">📤 Upload Content</h1>
+            <div style="background: #232b50; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                <h1 style="color: #ffffff; margin-bottom: 20px;">📤 Upload Content</h1>
             </div>
         </div>
     ''', unsafe_allow_html=True)
@@ -56,8 +84,8 @@ def display_upload_form():
             .loading-spinner {
                 width: 50px;
                 height: 50px;
-                border: 5px solid #f3f3f3;
-                border-top: 5px solid #1E88E5;
+                border: 5px solid #2a325a;
+                border-top: 5px solid #3949ab;
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
             }
@@ -65,7 +93,7 @@ def display_upload_form():
     ''', unsafe_allow_html=True)
     
     with st.container():
-        st.markdown('<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">', unsafe_allow_html=True)
+        st.markdown('<div style="background: #232b50; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); margin: 20px 0;">', unsafe_allow_html=True)
         
         # Title input
         title = st.text_input("Title", key="title_input")
@@ -158,11 +186,12 @@ def process_natural_language_query(query: str, content_items: list) -> list:
 
 def display_content_view():
     st.markdown('''
-        <div style="background: linear-gradient(90deg, #1a237e 0%, #283593 100%);
+        <div style="background: linear-gradient(90deg, #232b50 0%, #2a325a 100%);
              color: white; 
              padding: 20px; 
              border-radius: 15px; 
-             margin-bottom: 20px;">
+             margin-bottom: 20px;
+             box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
             <h1 style="margin: 0;">📚 Content Library</h1>
             <p style="margin: 10px 0 0 0;">Organize and discover your content</p>
         </div>
@@ -181,51 +210,21 @@ def display_content_view():
     build_items = len([i for i in content_items if i['category'] == 'Build'])
     sales_items = len([i for i in content_items if i['category'] == 'Sales'])
     
-    st.markdown('''
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
-    ''', unsafe_allow_html=True)
-    
     metrics = [
         {"label": "Total Items", "value": total_items},
         {"label": "Build Items", "value": build_items},
         {"label": "Sales Items", "value": sales_items}
     ]
     
-    for metric in metrics:
-        st.markdown(f'''
-            <div style="background: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h3 style="color: #1E88E5; margin: 0;">{metric['value']}</h3>
-                <p style="color: #666; margin: 5px 0 0 0;">{metric['label']}</p>
-            </div>
-        ''', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Enhanced search section
-    st.markdown('''
-        <div style="background: #f8f9fa;
-             padding: 20px;
-             border-radius: 15px;
-             margin: 20px 0;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="text" 
-                       placeholder="Search content..."
-                       style="flex: 1;
-                              padding: 10px;
-                              border: 2px solid #e0e0e0;
-                              border-radius: 10px;
-                              font-size: 16px;">
-                <button style="background: #1E88E5;
-                       color: white;
-                       border: none;
-                       padding: 10px 20px;
-                       border-radius: 10px;
-                       cursor: pointer;">
-                    Search
-                </button>
-            </div>
-        </div>
-    ''', unsafe_allow_html=True)
+    cols = st.columns(3)
+    for idx, metric in enumerate(metrics):
+        with cols[idx]:
+            st.markdown(f'''
+                <div style="background: #232b50; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                    <h3 style="color: #ffffff; margin: 0;">{metric['value']}</h3>
+                    <p style="color: #a0a0a0; margin: 5px 0 0 0;">{metric['label']}</p>
+                </div>
+            ''', unsafe_allow_html=True)
     
     # Search and filter options
     categories = get_categories()
@@ -267,27 +266,26 @@ def display_content_view():
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
                         st.markdown(f'''
-                            <div style="background: white; 
+                            <div style="background: #232b50; 
                                  padding: 20px; 
                                  border-radius: 15px;
                                  margin: 15px 0;
-                                 border-left: 5px solid #1E88E5;
-                                 box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-                                 transition: transform 0.2s, box-shadow 0.2s;">
+                                 border-left: 5px solid #3949ab;
+                                 box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <h3 style="margin: 0; color: #1a237e;">{item['title']}</h3>
-                                    <span style="color: #666; font-size: 0.9em;">{item['date']}</span>
+                                    <h3 style="margin: 0; color: #ffffff;">{item['title']}</h3>
+                                    <span style="color: #a0a0a0; font-size: 0.9em;">{item['date']}</span>
                                 </div>
                                 <div style="margin: 10px 0;">
-                                    <span style="background: #e3f2fd; 
+                                    <span style="background: #3949ab; 
                                           padding: 5px 10px; 
                                           border-radius: 15px; 
                                           font-size: 0.9em;
-                                          color: #1565C0;">
+                                          color: white;">
                                         {item['category']}
                                     </span>
                                 </div>
-                                <p style="margin: 15px 0; color: #333; line-height: 1.6;">
+                                <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
                                     {item['description']}
                                 </p>
                             </div>
@@ -312,7 +310,7 @@ def display_content_view():
              bottom: 20px; 
              right: 20px; 
              z-index: 999;">
-            <button style="background: #1E88E5;
+            <button style="background: #3949ab;
                    color: white;
                    border: none;
                    padding: 15px;
