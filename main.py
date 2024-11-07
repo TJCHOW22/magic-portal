@@ -260,12 +260,8 @@ def display_content_view():
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
                         if item["type"] == "Text":
-                            # Create a unique key for this item's toggle state
-                            toggle_key = f"toggle_{item['title']}_{item['date']}"
-                            
-                            # Initialize toggle state if not exists
-                            if toggle_key not in st.session_state:
-                                st.session_state[toggle_key] = False
+                            # Create a unique key for this item
+                            toggle_key = f"toggle_{item['title']}_{item['date']}".replace(' ', '_')
                             
                             st.markdown(f'''
                                 <div style="background: #000000; 
@@ -290,15 +286,11 @@ def display_content_view():
                                     <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
                                         {item['description']}
                                     </p>
-                                    
+                                </div>
                             ''', unsafe_allow_html=True)
                             
-                            # Add Streamlit button for toggle
-                            if st.button("View Content", key=toggle_key):
-                                st.session_state[toggle_key] = not st.session_state[toggle_key]
-                            
-                            # Show content if toggled
-                            if st.session_state[toggle_key]:
+                            # Use expander instead of button for toggle
+                            with st.expander("View Content", expanded=False):
                                 st.markdown(f'''
                                     <div style="background: #000000; 
                                           padding: 15px;
@@ -313,6 +305,7 @@ def display_content_view():
                                         </pre>
                                     </div>
                                 ''', unsafe_allow_html=True)
+
                         else:
                             st.markdown(f'''
                                 <div style="background: #000000; 
