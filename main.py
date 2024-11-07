@@ -90,9 +90,9 @@ def main():
         </style>
     ''', unsafe_allow_html=True)
     
-    # Initialize session state
-    if 'current_view' not in st.session_state:
-        st.session_state.current_view = 'upload'
+    # Initialize session state for content toggles
+    if 'content_toggles' not in st.session_state:
+        st.session_state.content_toggles = {}
     
     # Sidebar navigation
     nav_selection = st.sidebar.radio("Navigation", ["Upload Content", "View Content"])
@@ -265,35 +265,32 @@ def display_content_view():
                                     {item['description']}
                                 </p>
                                 {f'<a href="{item["content"]}" target="_blank" style="display: inline-block; background: #3949ab; color: white; text-decoration: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px;">🔗 Open Link</a>' if item["type"] == "Link" else ''}
-                                {f"""
-                                <details style="background: #000000; 
-                                            padding: 10px; 
-                                            border-radius: 8px; 
-                                            margin-top: 10px;
-                                            border: 1px solid #3949ab;">
-                                    <summary style="color: #ffffff; 
-                                              cursor: pointer; 
-                                              padding: 5px;
-                                              user-select: none;">
-                                        View Content
-                                    </summary>
-                                    <div style="background: #000000; 
-                                          padding: 10px; 
-                                          margin-top: 10px; 
-                                          border-radius: 5px;
-                                          color: #ffffff;
-                                          white-space: pre-wrap;">
-                                        {item['content']}
-                                    </div>
-                                </details>
-                                """ if item["type"] == "Text" else ''}
                             </div>
                         ''', unsafe_allow_html=True)
                         
-                        if item["type"] == "Image":
+                        # Handle text content with Streamlit components
+                        if item["type"] == "Text":
+                            toggle_key = f"toggle_{item['title']}_{item['date']}"
+                            if st.button("View Content", key=toggle_key):
+                                st.markdown(f'''
+                                    <div style="background: #000000; 
+                                          padding: 10px; 
+                                          margin-top: 10px; 
+                                          border-radius: 5px;">
+                                        <pre style="color: #ffffff; 
+                                              white-space: pre-wrap; 
+                                              margin: 0;
+                                              font-family: monospace;">
+                                            {item['content']}
+                                        </pre>
+                                    </div>
+                                ''', unsafe_allow_html=True)
+                        
+                        # Handle image content
+                        elif item["type"] == "Image":
                             if item["content"]:
                                 try:
-                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
+                                    st.image(io.BytesIO(item["content"]), use_container_width=True)
                                 except:
                                     st.error("Unable to display image")
             
