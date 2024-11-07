@@ -178,37 +178,47 @@ def display_content_view():
             content_by_category[category] = []
         content_by_category[category].append(item)
     
-    # Display content organized by category with collapsible folders
+    # Display content organized by category with side-by-side folders
     if not content_items:
         st.info("No content found matching your criteria.")
     else:
+        # Create columns for categories
+        cols = st.columns(2)  # Two columns for Build and Sales
+        
+        # Track which column to use (alternating between 0 and 1)
+        col_idx = 0
+        
         for category, items in content_by_category.items():
-            # Create collapsible category folder
-            with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
-                # Display items in sorted order within each category
-                for item in sorted(items, key=lambda x: x['date'], reverse=True):
-                    st.markdown(f"""
-                        <div style='background-color: #f0f2f6; padding: 10px; 
-                             border-radius: 5px; margin: 10px 0;
-                             border-left: 4px solid #1E88E5;'>
-                            <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
-                            <p><strong>Category:</strong> {item['category']}</p>
-                            <p><strong>Description:</strong> {item['description']}</p>
-                        </div>
-                        """, 
-                        unsafe_allow_html=True
-                    )
-                    
-                    if item["type"] == "Image":
-                        if item["content"]:
-                            try:
-                                st.image(io.BytesIO(item["content"]), use_container_width=True)
-                            except:
-                                st.error("Unable to display image")
-                    elif item["type"] == "Link":
-                        st.markdown(f"🔗 [Open Link]({item['content']})")
-                    else:
-                        st.text_area("Content", item['content'], height=100, disabled=True)
+            # Display category in current column
+            with cols[col_idx]:
+                with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
+                    # Display items in sorted order within each category
+                    for item in sorted(items, key=lambda x: x['date'], reverse=True):
+                        st.markdown(f'''
+                            <div style='background-color: #f0f2f6; padding: 10px; 
+                                 border-radius: 5px; margin: 10px 0;
+                                 border-left: 4px solid #1E88E5;'>
+                                <h4 style='margin: 0;'>📌 {item['title']} - {item['date']}</h4>
+                                <p><strong>Category:</strong> {item['category']}</p>
+                                <p><strong>Description:</strong> {item['description']}</p>
+                            </div>
+                            ''', 
+                            unsafe_allow_html=True
+                        )
+                        
+                        if item["type"] == "Image":
+                            if item["content"]:
+                                try:
+                                    st.image(io.BytesIO(item["content"]), use_column_width=True)
+                                except:
+                                    st.error("Unable to display image")
+                        elif item["type"] == "Link":
+                            st.markdown(f"🔗 [Open Link]({item['content']})")
+                        else:
+                            st.text_area("Content", item['content'], height=100, disabled=True)
+            
+            # Switch to next column
+            col_idx = (col_idx + 1) % 2
 
 if __name__ == "__main__":
     main()
