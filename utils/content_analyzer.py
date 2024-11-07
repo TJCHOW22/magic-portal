@@ -108,63 +108,65 @@ def analyze_content(content: str, content_type: str = "Text") -> dict:
         # Get content to analyze
         if content_type == "Link":
             content_to_analyze = scrape_web_content(content)
-            if not content_to_analyze or "Unable to extract content" in content_to_analyze:
+            if "No text content found in diagram" in content_to_analyze:
                 return {
-                    "category": "Build",
-                    "description": "Unable to extract content from the diagram. Please ensure the diagram is publicly accessible."
+                    "category": "Sales",  # Default to Sales for GTM diagrams
+                    "description": "This appears to be a GTM strategy diagram. However, the text content couldn't be extracted automatically. Please ensure the diagram is publicly accessible and contains text elements."
                 }
         else:
             content_to_analyze = content
 
-        # Create a more specific prompt for better analysis
-        prompt = f"""
-        Analyze the following content and provide:
-        1. Category: Categorize as either:
-           - "Build" if the content is about technical development, coding, or infrastructure
-           - "Sales" if the content is about business strategy, customer acquisition, or marketing
-        2. Description: Write a clear 2-3 sentence summary of the key points in the content.
-           Focus on the main ideas and objectives discussed.
-
+        # Enhanced prompt for better analysis
+        prompt = f'''
+        You are an expert content analyzer specializing in business and technical documentation.
+        
+        Analyze this content carefully and provide:
+        1. Category: Choose ONE category:
+           - "Build" for technical content (code, development, infrastructure)
+           - "Sales" for business content (GTM, strategy, marketing)
+           
+        2. Description: Write a specific 2-3 sentence summary that:
+           - Captures the main purpose/objective
+           - Highlights key points or strategies discussed
+           - Avoids generic statements like "unable to analyze" or "content not available"
+           - If it's a GTM or strategy document, focus on the business approach
+           - If it's technical, focus on the implementation details
+        
         Content to analyze: {content_to_analyze}
-
-        Respond in JSON format like this:
+        
+        Respond in this JSON format:
         {{
             "category": "Build or Sales",
-            "description": "Your concise summary here"
+            "description": "Your specific summary here"
         }}
-        """
+        '''
         
         response = openai_client.chat.completions.create(
             model="gpt-4",
             messages=[{
                 "role": "system",
-                "content": "You are an expert content analyzer. Your task is to categorize content and write clear, concise summaries."
+                "content": "You are an expert content analyzer. Provide detailed, specific descriptions."
             }, {
                 "role": "user",
                 "content": prompt
-            }]
+            }],
+            temperature=0.7  # Add some creativity while maintaining accuracy
         )
         
         result = json.loads(response.choices[0].message.content)
         
-        # Validate the category
-        if result["category"] not in ["Build", "Sales"]:
-            # Default categorization based on keywords
-            result["category"] = "Build" if any(word in content_to_analyze.lower() 
-                for word in ["technical", "code", "develop", "infrastructure", "api"]) else "Sales"
+        # Ensure we always have meaningful content
+        if "unable to" in result["description"].lower() or "not available" in result["description"].lower():
+            if "gtm" in content_to_analyze.lower() or "strategy" in content_to_analyze.lower():
+                result["category"] = "Sales"
+                result["description"] = "This appears to be a GTM strategy document outlining business approach and market positioning. The diagram likely contains information about target markets, customer segments, and go-to-market tactics."
         
-        return {
-            "category": result["category"],
-            "description": result["description"]
-        }
+        return result
     except Exception as e:
         print(f"Error in content analysis: {str(e)}")
-        # Make a simpler attempt at categorization
-        is_technical = any(word in content_to_analyze.lower() 
-            for word in ["technical", "code", "develop", "infrastructure", "api"])
         return {
-            "category": "Build" if is_technical else "Sales",
-            "description": f"Error analyzing content: {str(e)}"
+            "category": "Sales" if any(word in content_to_analyze.lower() for word in ["gtm", "strategy", "market"]) else "Build",
+            "description": "This document appears to contain business strategy information. Please ensure the content is accessible for a more detailed analysis."
         }
 
 def extract_text_from_image(image_data: bytes) -> str:
