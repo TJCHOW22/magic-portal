@@ -16,48 +16,64 @@ def scrape_excalidraw_content(url: str) -> str:
         if '/s/' in url:
             scene_id = url.split('/s/')[-1].split('/')[1]
         
-        # First try using the Excalidraw API
-        api_url = f"https://excalidraw.com/api/v2/scenes/{scene_id}"
+        # Try client-side API endpoint
+        client_api_url = f"https://excalidraw.com/api/v2/scene/{scene_id}"
         headers = {
             'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0'
+            'User-Agent': 'Mozilla/5.0',
+            'Content-Type': 'application/json'
         }
         
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            scene_data = response.json()
-            texts = []
-            
-            # Extract text from elements
-            if 'elements' in scene_data:
-                for element in scene_data['elements']:
-                    if element.get('type') == 'text' and element.get('text'):
-                        texts.append(element['text'])
-            
-            if texts:
-                return ' '.join(texts)
+        print(f"Attempting to fetch scene data from: {client_api_url}")
+        response = requests.get(client_api_url, headers=headers)
+        print(f"Response status code: {response.status_code}")
         
-        # If API fails, try direct page scraping
-        page_response = requests.get(url)
+        if response.status_code == 200:
+            try:
+                scene_data = response.json()
+                print(f"Successfully parsed scene data")
+                
+                # Extract text from elements
+                texts = []
+                if 'elements' in scene_data:
+                    for element in scene_data['elements']:
+                        if isinstance(element, dict) and element.get('type') == 'text' and element.get('text'):
+                            texts.append(element['text'])
+                        elif isinstance(element, dict) and element.get('label'):
+                            texts.append(element['label'])
+                
+                if texts:
+                    print(f"Found {len(texts)} text elements")
+                    return ' '.join(texts)
+            except json.JSONDecodeError as je:
+                print(f"JSON decode error: {str(je)}")
+                print(f"Response content: {response.text[:200]}")  # Print first 200 chars of response
+        
+        # If API fails, try getting scene data directly
+        scene_url = f"https://excalidraw.com/l/{scene_id}"
+        print(f"Attempting to fetch scene directly from: {scene_url}")
+        
+        page_response = requests.get(scene_url)
         soup = BeautifulSoup(page_response.text, 'html.parser')
         
-        # Look for text elements in the page
-        text_elements = soup.find_all(['text', 'tspan', 'div', 'p'])
-        texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
+        # Look for text content in specific elements
+        text_elements = soup.find_all(['text', 'tspan', '.excalidraw-textLayer', '[data-text-editor]'])
+        texts = []
+        for elem in text_elements:
+            text = elem.get_text().strip()
+            if text and len(text) > 2 and 'JavaScript' not in text and 'enable' not in text.lower():
+                texts.append(text)
         
-        # Filter out common UI elements and errors
-        filtered_texts = [
-            text for text in texts 
-            if 'JavaScript' not in text 
-            and 'enable' not in text.lower()
-            and len(text) > 5
-        ]
+        if texts:
+            print(f"Found {len(texts)} text elements from direct page scraping")
+            return ' '.join(texts)
         
-        content = ' '.join(filtered_texts)
-        return content if content else "No text content found in diagram"
+        print("No text content found through any method")
+        return "No text content found in diagram"
         
     except Exception as e:
         print(f"Error extracting Excalidraw content: {str(e)}")
+        print(f"URL attempted: {url}")
         return f"Unable to extract content from Excalidraw diagram: {str(e)}"
 
 def scrape_web_content(url: str) -> str:
