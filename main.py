@@ -93,7 +93,7 @@ def display_upload_form():
                     "content": content if isinstance(content, str) else None,
                     "category": analysis["category"],
                     "description": analysis["description"],
-                    "date": datetime.datetime.now().strftime("%m/%y")
+                    "date": datetime.datetime.now().strftime("%m/%d")
                 }
                 
                 save_content(content_data)
@@ -152,6 +152,8 @@ def display_content_view():
     # Load content with error handling
     try:
         content_items = load_content()
+        # Sort content items by date (most recent first)
+        content_items.sort(key=lambda x: x['date'], reverse=True)
     except json.JSONDecodeError:
         st.error("Error loading content. The content file may be corrupted.")
         content_items = []
@@ -163,12 +165,12 @@ def display_content_view():
     if search_query:
         content_items = process_natural_language_query(search_query, content_items)
     
-    # Filter by category
+    # Filter by category while maintaining sort order
     if selected_category != "All":
         content_items = [item for item in content_items 
                         if item["category"] == selected_category]
     
-    # Group content by category
+    # Group content by category while preserving sort order within each category
     content_by_category = {}
     for item in content_items:
         category = item["category"]
@@ -192,7 +194,8 @@ def display_content_view():
                 unsafe_allow_html=True
             )
             
-            for item in items:
+            # Display items in sorted order within each category
+            for item in sorted(items, key=lambda x: x['date'], reverse=True):
                 with st.expander(f"📌 {item['title']} - {item['date']}"):
                     st.markdown(f"""
                         <div style='background-color: #E3F2FD; padding: 10px; 
