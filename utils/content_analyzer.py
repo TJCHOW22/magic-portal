@@ -11,55 +11,54 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def scrape_excalidraw_content(url: str) -> str:
     try:
-        # Convert app/link URL to scene URL format
+        # Extract scene ID from URL
         scene_id = url.split('/')[-1]
-        if 'link.excalidraw.com' in url:
-            scene_id = url.split('/')[-1]
-        elif 'app.excalidraw.com' in url:
-            scene_id = url.split('/')[-2]  # Handle app URL format
-            
-        # Try to fetch the scene data
+        if '/s/' in url:
+            scene_id = url.split('/s/')[-1].split('/')[1]
+        
+        # First try using the Excalidraw API
         api_url = f"https://excalidraw.com/api/v2/scenes/{scene_id}"
         headers = {
             'Accept': 'application/json',
             'User-Agent': 'Mozilla/5.0'
         }
         
-        response = requests.get(api_url, headers=headers)
-        response.raise_for_status()  # Raise exception for bad status codes
-        
-        scene_data = response.json()
-        
-        # Extract text from elements
-        texts = []
-        if 'elements' in scene_data:
-            for element in scene_data['elements']:
-                if element.get('type') == 'text' and element.get('text'):
-                    texts.append(element['text'])
-        
-        # If no text found through API, try scraping the webpage
-        if not texts:
-            page_response = requests.get(url)
-            soup = BeautifulSoup(page_response.text, 'html.parser')
-            text_elements = soup.find_all(['text', 'tspan', 'div'])
-            texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
-        
-        # Combine all found text
-        content = ' '.join(texts)
-        return content if content else "No text content found in diagram"
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            scene_data = response.json()
+            texts = []
             
+            # Extract text from elements
+            if 'elements' in scene_data:
+                for element in scene_data['elements']:
+                    if element.get('type') == 'text' and element.get('text'):
+                        texts.append(element['text'])
+            
+            if texts:
+                return ' '.join(texts)
+        
+        # If API fails, try direct page scraping
+        page_response = requests.get(url)
+        soup = BeautifulSoup(page_response.text, 'html.parser')
+        
+        # Look for text elements in the page
+        text_elements = soup.find_all(['text', 'tspan', 'div', 'p'])
+        texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
+        
+        # Filter out common UI elements and errors
+        filtered_texts = [
+            text for text in texts 
+            if 'JavaScript' not in text 
+            and 'enable' not in text.lower()
+            and len(text) > 5
+        ]
+        
+        content = ' '.join(filtered_texts)
+        return content if content else "No text content found in diagram"
+        
     except Exception as e:
         print(f"Error extracting Excalidraw content: {str(e)}")
-        try:
-            # Fallback to basic webpage scraping
-            response = requests.get(url)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            text = soup.get_text()
-            lines = (line.strip() for line in text.splitlines())
-            content = ' '.join(line for line in lines if line)
-            return content if content else "Unable to extract text from Excalidraw diagram"
-        except:
-            return "Unable to extract content from Excalidraw diagram"
+        return f"Unable to extract content from Excalidraw diagram: {str(e)}"
 
 def scrape_web_content(url: str) -> str:
     if 'excalidraw.com' in url:
@@ -87,27 +86,28 @@ def scrape_web_content(url: str) -> str:
         return f"Error: Unable to scrape content from {url}"
 
 def analyze_content(content: str, content_type: str = "Text") -> dict:
-    """
-    Analyze content using OpenAI API to determine category and generate description
-    """
     try:
-        # If content is a URL, scrape its content
+        # Get content to analyze
         if content_type == "Link":
             content_to_analyze = scrape_web_content(content)
+            if "Unable to extract content" in content_to_analyze:
+                return {
+                    "category": "Build",
+                    "description": "Unable to extract content from the diagram. Please ensure the diagram is publicly accessible."
+                }
         else:
             content_to_analyze = content
 
+        # Create a more specific prompt for better analysis
         prompt = f"""
-        Analyze the following content and categorize it into one of these two categories:
-        - "Build" (for development, coding, and technical content)
-        - "Sales" (for customer acquisition and business-related content)
+        Analyze the following content and provide:
+        1. Category: Either "Build" (for technical/development content) or "Sales" (for business/customer content)
+        2. A concise 2-3 sentence description summarizing the key points.
         
-        Also provide a 2-3 sentence description summarizing the content.
+        Content to analyze: {content_to_analyze}
         
-        Content: {content_to_analyze}
-        
-        Return the response in the following format:
-        {{"category": "selected_category", "description": "generated_description"}}
+        Respond in JSON format:
+        {{"category": "Build_or_Sales", "description": "Your_summary"}}
         """
         
         response = openai_client.chat.completions.create(
@@ -115,25 +115,16 @@ def analyze_content(content: str, content_type: str = "Text") -> dict:
             messages=[{"role": "user", "content": prompt}]
         )
         
-        content = response.choices[0].message.content
-        try:
-            result = json.loads(content)
-            # Ensure category is either Build or Sales
-            if result['category'] not in ['Build', 'Sales']:
-                result['category'] = 'Build' if 'technical' in content.lower() or 'coding' in content.lower() else 'Sales'
-            return result
-        except:
-            # Default categorization based on content
-            category = 'Build' if 'technical' in content.lower() or 'coding' in content.lower() else 'Sales'
-            return {
-                "category": category,
-                "description": content if len(content) < 200 else content[:197] + "..."
-            }
+        result = json.loads(response.choices[0].message.content)
+        return {
+            "category": result["category"],
+            "description": result["description"]
+        }
     except Exception as e:
         print(f"Error in content analysis: {str(e)}")
         return {
-            "category": "Sales",  # Default to Sales if error occurs
-            "description": "Unable to generate description due to an error."
+            "category": "Build",
+            "description": f"Error analyzing content: {str(e)}"
         }
 
 def extract_text_from_image(image_data: bytes) -> str:
