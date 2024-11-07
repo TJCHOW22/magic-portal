@@ -9,7 +9,35 @@ from bs4 import BeautifulSoup
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+def scrape_excalidraw_content(url: str) -> str:
+    try:
+        # Extract the diagram ID from the URL
+        diagram_id = url.split('/')[-1]
+        
+        # Make a request to Excalidraw's JSON endpoint
+        api_url = f"https://excalidraw.com/api/v2/scenes/{diagram_id}"
+        response = requests.get(api_url)
+        data = response.json()
+        
+        # Extract text from elements
+        texts = []
+        if 'elements' in data:
+            for element in data['elements']:
+                if element.get('type') == 'text' and element.get('text'):
+                    texts.append(element['text'])
+        
+        # Combine texts with proper formatting
+        formatted_text = ' '.join(texts)
+        return formatted_text if formatted_text else "No text content found in diagram"
+        
+    except Exception as e:
+        print(f"Error extracting Excalidraw content: {str(e)}")
+        return "Unable to extract content from Excalidraw diagram"
+
 def scrape_web_content(url: str) -> str:
+    if 'excalidraw.com' in url:
+        return scrape_excalidraw_content(url)
+        
     try:
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
