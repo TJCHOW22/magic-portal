@@ -260,7 +260,13 @@ def display_content_view():
                 with st.expander(f"📁 {category} ({len(items)} items)", expanded=True):
                     for item in sorted(items, key=lambda x: x['date'], reverse=True):
                         if item["type"] == "Text":
+                            # Create a unique key for this item's toggle state
                             toggle_key = f"toggle_{item['title']}_{item['date']}"
+                            
+                            # Initialize toggle state if not exists
+                            if toggle_key not in st.session_state:
+                                st.session_state[toggle_key] = False
+                            
                             st.markdown(f'''
                                 <div style="background: #000000; 
                                      padding: 20px; 
@@ -284,20 +290,29 @@ def display_content_view():
                                     <p style="margin: 15px 0; color: #ffffff; line-height: 1.6;">
                                         {item['description']}
                                     </p>
-                                    <button class="toggle-button" 
-                                            onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-                                        View Content
-                                    </button>
-                                    <div class="content-section">
-                                        <pre style="color: #ffffff;
+                                    
+                            ''', unsafe_allow_html=True)
+                            
+                            # Add Streamlit button for toggle
+                            if st.button("View Content", key=toggle_key):
+                                st.session_state[toggle_key] = not st.session_state[toggle_key]
+                            
+                            # Show content if toggled
+                            if st.session_state[toggle_key]:
+                                st.markdown(f'''
+                                    <div style="background: #000000; 
+                                          padding: 15px;
+                                          margin-top: 10px;
+                                          border-radius: 8px;
+                                          border: 1px solid #3949ab;">
+                                        <pre style="color: #ffffff; 
                                               white-space: pre-wrap;
                                               margin: 0;
                                               font-family: monospace;">
                                             {item['content']}
                                         </pre>
                                     </div>
-                                </div>
-                            ''', unsafe_allow_html=True)
+                                ''', unsafe_allow_html=True)
                         else:
                             st.markdown(f'''
                                 <div style="background: #000000; 
