@@ -87,23 +87,6 @@ def main():
                 color: white !important;
                 border: 1px solid #3949ab !important;
             }
-
-            /* Style the content toggle button */
-            .content-toggle {
-                background: #3949ab;
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                border-radius: 8px;
-                cursor: pointer;
-                width: 100%;
-                text-align: left;
-                transition: background-color 0.3s;
-            }
-            
-            .content-toggle:hover {
-                background: #4051b5;
-            }
         </style>
     ''', unsafe_allow_html=True)
     
@@ -287,46 +270,21 @@ def display_content_view():
                         
                         # Handle text content with Streamlit components
                         if item["type"] == "Text":
-                            # Create a unique key for this item's state
                             toggle_key = f"toggle_{item['title']}_{item['date']}"
-                            
-                            # Initialize toggle state if not exists
-                            if toggle_key not in st.session_state:
-                                st.session_state[toggle_key] = False
-                            
-                            # Add toggle button within the black box
-                            st.markdown(f'''
-                                <div style="background: #000000; 
-                                      padding: 10px; 
-                                      border-radius: 8px; 
-                                      margin-top: 10px;
-                                      border: 1px solid #3949ab;">
-                                    <button onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';"
-                                            style="background: #3949ab;
-                                                   color: white;
-                                                   border: none;
-                                                   padding: 8px 15px;
-                                                   border-radius: 8px;
-                                                   cursor: pointer;
-                                                   width: 100%;
-                                                   text-align: left;">
-                                        📖 View Content
-                                    </button>
-                                    <div style="display: none;
-                                              background: #000000;
-                                              padding: 15px;
-                                              margin-top: 10px;
-                                              border-radius: 5px;
-                                              border: 1px solid #3949ab;">
-                                        <pre style="color: #ffffff;
-                                                  white-space: pre-wrap;
-                                                  margin: 0;
-                                                  font-family: monospace;">
+                            if st.button("View Content", key=toggle_key):
+                                st.markdown(f'''
+                                    <div style="background: #000000; 
+                                          padding: 10px; 
+                                          margin-top: 10px; 
+                                          border-radius: 5px;">
+                                        <pre style="color: #ffffff; 
+                                              white-space: pre-wrap; 
+                                              margin: 0;
+                                              font-family: monospace;">
                                             {item['content']}
                                         </pre>
                                     </div>
-                                </div>
-                            ''', unsafe_allow_html=True)
+                                ''', unsafe_allow_html=True)
                         
                         # Handle image content
                         elif item["type"] == "Image":
