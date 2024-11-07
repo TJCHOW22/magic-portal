@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 from utils.content_analyzer import analyze_content, extract_text_from_image
 from utils.data_manager import save_content, load_content, get_categories
+from utils.search_utils import semantic_search
 import io
 from PIL import Image
 
@@ -92,26 +93,39 @@ def display_upload_form():
 def display_content_view():
     st.header("Content Library")
     
+    # Enhanced search interface
+    st.markdown("""
+        <div style='background-color: #f0f2f6; padding: 15px; border-radius: 10px; margin-bottom: 20px;'>
+            <h4 style='color: #1E88E5; margin: 0;'>🔍 Advanced Search</h4>
+            <p style='margin: 5px 0;'>Try natural language queries like:</p>
+            <ul>
+                <li>Show me content about marketing strategies</li>
+                <li>Find documents related to sales performance</li>
+                <li>Technical documentation about our products</li>
+            </ul>
+        </div>
+    """, unsafe_allow_html=True)
+    
     # Search and filter options
     col1, col2 = st.columns([2, 1])
     with col1:
-        search_query = st.text_input("🔍 Search by keywords")
+        search_query = st.text_input("🔍 Search using natural language")
     with col2:
         categories = get_categories()
         selected_category = st.selectbox("📁 Filter by Category", ["All"] + categories)
     
-    # Load and display content
+    # Load content
     content_items = load_content()
     
-    # Filter content based on search and category
-    if search_query:
-        content_items = [item for item in content_items 
-                        if search_query.lower() in item["title"].lower() 
-                        or search_query.lower() in item["description"].lower()]
-    
+    # Apply category filter first
     if selected_category != "All":
         content_items = [item for item in content_items 
                         if item["category"] == selected_category]
+    
+    # Apply semantic search if query exists
+    if search_query:
+        with st.spinner("Performing semantic search..."):
+            content_items = semantic_search(search_query, content_items)
     
     # Group content by category
     content_by_category = {}
