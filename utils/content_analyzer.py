@@ -11,29 +11,55 @@ openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def scrape_excalidraw_content(url: str) -> str:
     try:
-        # Extract the diagram ID from the URL
-        diagram_id = url.split('/')[-1]
-        
-        # Make a request to Excalidraw's public API
+        # Convert app/link URL to scene URL format
+        scene_id = url.split('/')[-1]
+        if 'link.excalidraw.com' in url:
+            scene_id = url.split('/')[-1]
+        elif 'app.excalidraw.com' in url:
+            scene_id = url.split('/')[-2]  # Handle app URL format
+            
+        # Try to fetch the scene data
+        api_url = f"https://excalidraw.com/api/v2/scenes/{scene_id}"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0'
         }
-        response = requests.get(url, headers=headers)
         
-        # Use BeautifulSoup to extract text content
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()  # Raise exception for bad status codes
         
-        # Get all text content
-        text_elements = soup.find_all(['text', 'p', 'div', 'span'])
-        texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
+        scene_data = response.json()
         
-        # Combine texts with proper formatting
-        formatted_text = ' '.join(texts)
-        return formatted_text if formatted_text else "No text content found in diagram"
+        # Extract text from elements
+        texts = []
+        if 'elements' in scene_data:
+            for element in scene_data['elements']:
+                if element.get('type') == 'text' and element.get('text'):
+                    texts.append(element['text'])
         
+        # If no text found through API, try scraping the webpage
+        if not texts:
+            page_response = requests.get(url)
+            soup = BeautifulSoup(page_response.text, 'html.parser')
+            text_elements = soup.find_all(['text', 'tspan', 'div'])
+            texts = [elem.get_text().strip() for elem in text_elements if elem.get_text().strip()]
+        
+        # Combine all found text
+        content = ' '.join(texts)
+        return content if content else "No text content found in diagram"
+            
     except Exception as e:
         print(f"Error extracting Excalidraw content: {str(e)}")
-        return f"Unable to extract content from Excalidraw diagram: {str(e)}"
+        try:
+            # Fallback to basic webpage scraping
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            text = soup.get_text()
+            lines = (line.strip() for line in text.splitlines())
+            content = ' '.join(line for line in lines if line)
+            return content if content else "Unable to extract text from Excalidraw diagram"
+        except:
+            return "Unable to extract content from Excalidraw diagram"
 
 def scrape_web_content(url: str) -> str:
     if 'excalidraw.com' in url:
